@@ -1,112 +1,94 @@
-const { spawn } = require("child_process");
-const axios = require("axios");
-const logger = require("./utils/log");
+/**
+ * Facebook Messenger Bot - Main Entry Point
+ * This file initializes the bot and loads all required modules
+ */
 
-///////////////////////////////////////////////////////////
-//========= Create website for dashboard/uptime =========//
-///////////////////////////////////////////////////////////
-
-const express = require('express');
+const fs = require('fs-extra');
 const path = require('path');
+const mongoose = require('mongoose');
+const chalk = require('chalk');
+const moment = require('moment-timezone');
 
-const app = express();
-const port = process.env.PORT || 8080;
+// Set global variables
+global.client = {};
+global.config = {};
+global.utils = {};
+global.api = {};
+global.startTime = new Date();
 
-// Serve the index.html file
-app.get('/', function (req, res) {
-    res.sendFile(path.join(__dirname, '/index.html'));
-});
+// Load global modules
+require('./utils/global');
 
-// Start the server and add error handling
-app.listen(port, () => {
-    logger(`Server is running on port ${port}...`, "[ Starting ]");
-}).on('error', (err) => {
-    if (err.code === 'EACCES') {
-        logger(`Permission denied. Cannot bind to port ${port}.`, "[ Error ]");
-    } else {
-        logger(`Server error: ${err.message}`, "[ Error ]");
-    }
-});
+const logger = global.logger;
+logger.system('Starting bot...');
 
-/////////////////////////////////////////////////////////
-//========= Create start bot and make it loop =========//
-/////////////////////////////////////////////////////////
-
-// Initialize global restart counter
-global.countRestart = global.countRestart || 0;
-
-function startBot(message) {
-    if (message) logger(message, "[ Starting ]");
-
-    const child = spawn("node", ["--trace-warnings", "--async-stack-traces", "Priyansh.js"], {
-        cwd: __dirname,
-        stdio: "inherit",
-        shell: true
-    });
-
-    // Add more detailed error logging
-    child.on("error", (error) => {
-        logger(`Bot process error: ${error.stack || error.message}`, "[ Error ]");
-    });
-
-    // Add stdout and stderr handling for better debugging
-    if (child.stdout) {
-        child.stdout.on('data', (data) => {
-            console.log(`stdout: ${data}`);
-        });
-    }
-
-    if (child.stderr) {
-        child.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
-        });
-    }
-
-    child.on("close", (codeExit) => {
-        if (codeExit !== 0) {
-            logger(`Bot exited with code ${codeExit}`, "[ Exit ]");
-            
-            if (global.countRestart < 5) {
-                global.countRestart += 1;
-                logger(`Restarting... (${global.countRestart}/5)`, "[ Restarting ]");
-                startBot();
-            } else {
-                logger(`Bot stopped after ${global.countRestart} restarts.`, "[ Stopped ]");
-                logger("To see detailed errors, check the logs above or run the bot with 'node Priyansh.js' directly", "[ Debug ]");
-            }
-        } else {
-            logger("Bot process exited with code 0 (normal exit)", "[ Exit ]");
-        }
-    });
-};
-
-////////////////////////////////////////////////
-//========= Check update from Github =========//
-////////////////////////////////////////////////
-
-// Load package.json info locally instead of from GitHub
+// Log configuration loaded
 try {
-    const packageInfo = require('./package.json');
-    logger(packageInfo.name, "[ NAME ]");
-    logger(`Version: ${packageInfo.version}`, "[ VERSION ]");
-    logger(packageInfo.description, "[ DESCRIPTION ]");
-    
-    // Try to check for updates, but don't stop the bot if it fails
-    axios.get("https://raw.githubusercontent.com/codedbypriyansh/Priyansh-Bot/main/package.json")
-        .then((res) => {
-            // Only log if successful, don't stop the bot if there's an error
-            if (res.data && res.data.version) {
-                logger(`Remote version: ${res.data.version}`, "[ UPDATE INFO ]");
-            }
-        })
-        .catch((err) => {
-            // Just log the error but continue with bot startup
-            logger(`Update check failed: ${err.message}`, "[ Update Error ]");
-        });
-} catch (err) {
-    // If local package.json can't be read, just log and continue
-    logger(`Failed to load package info: ${err.message}`, "[ Error ]");
+  console.log(chalk.green('[CONFIG]'), 'Loaded configuration successfully');
+} catch (error) {
+  console.error(chalk.red('[ERROR]'), 'Failed to load config.json:', error.message);
+  process.exit(1);
 }
 
-// Start the bot
-startBot();
+// Create public directory if it doesn't exist
+if (!fs.existsSync('./public')) {
+  fs.mkdirSync('./public', { recursive: true });
+  logger.system('Created public directory for web server');
+}
+
+// Connect to MongoDB
+mongoose.set('strictQuery', false);
+console.log('[CONSOLE] Attempting to connect to MongoDB with URI:', global.config.mongoURI);
+mongoose.connect(global.config.mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => {
+  console.log('[CONSOLE] MongoDB connection successful');
+  logger.database('Connected to MongoDB successfully');
+
+  // Start HTTP server for preview
+  const server = require('./utils/server');
+  server.startServer();
+
+  // Load main bot file after database connection
+  require('./main.js');
+})
+.catch(err => {
+  console.error('[CONSOLE] MongoDB connection error:', err.message);
+  logger.error('MongoDB connection error:', err.message);
+  process.exit(1);
+});
+
+// Add global error handlers for better logging
+process.on('uncaughtException', (err) => {
+  global.logger.error('❌ Uncaught Exception:');
+  global.logger.error(err);
+  console.error('❌ Uncaught Exception:');
+  console.error(err);
+  // Don't exit the process to keep the bot running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  const timestamp = new Date().toISOString();
+
+  // Enhanced logging with highlighting
+  if (global.logger && global.logger.error) {
+    global.logger.error('🚨 UNHANDLED PROMISE REJECTION DETECTED 🚨');
+    global.logger.error('📍 Location:', promise);
+    global.logger.error('🔥 Reason:', reason);
+    global.logger.error('⏰ Timestamp:', timestamp);
+  }
+
+  // Create highlighted error box in console
+  console.error('\n' + '🚨'.repeat(25));
+  console.error('❌ UNHANDLED PROMISE REJECTION DETECTED');
+  console.error('📍 Promise:', promise);
+  console.error('🔥 Reason:', reason);
+  console.error('⏰ Time:', timestamp);
+  console.error('🚨'.repeat(25) + '\n');
+
+  // Don't exit the process to keep the bot running
+});
+
+logger.system('Bot initialization complete');
