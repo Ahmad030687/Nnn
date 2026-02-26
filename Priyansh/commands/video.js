@@ -1,19 +1,16 @@
 const axios = require("axios");
 const yts = require("yt-search");
 
-/* ================= CREATOR LOCK ================= */
-const CREATOR_LOCK = (() => {
-  const encoded = "QVJJRi1CQUJV"; // ARIF-BABU
-  return Buffer.from(encoded, "base64").toString("utf8");
-})();
-
-if (module.exports?.config?.credits && module.exports.config.credits !== CREATOR_LOCK) {
-  console.log("❌ Creator Lock Activated! Credits cannot be changed.");
-  module.exports.run = () => {};
-  return;
+// 🔒 CREDIT LOCK SYSTEM (DO NOT REMOVE)
+const CREDIT = "Shaan Khan";
+if (module.exports?.config?.credits && module.exports.config.credits !== CREDIT) {
+  throw new Error(
+    "\n❌ CREDIT LOCK ACTIVATED!\nOnly Shaan Khan is allowed to edit this file.\n"
+  );
 }
+// END LOCK 🔒
 
-/* 🎞️ Loading Frames */
+// 🎞️ Loading Frames
 const frames = [
   "🎬 ▰▱▱▱▱▱▱▱▱▱ 10%",
   "📡 ▰▰▱▱▱▱▱▱▱▱ 25%",
@@ -22,7 +19,7 @@ const frames = [
   "✅ ▰▰▰▰▰▰▰▰▰▰ 100%"
 ];
 
-/* 🌐 API Loader */
+// 🌐 API Loader
 const baseApiUrl = async () => {
   const base = await axios.get(
     "https://raw.githubusercontent.com/Mostakim0978/D1PT0/refs/heads/main/baseApiUrl.json"
@@ -36,7 +33,7 @@ const baseApiUrl = async () => {
   };
 })();
 
-/* 🎥 Stream helper */
+// 🎥 Stream helper
 async function getStreamFromURL(url, pathName) {
   const response = await axios.get(url, {
     responseType: "stream",
@@ -46,7 +43,7 @@ async function getStreamFromURL(url, pathName) {
   return response.data;
 }
 
-/* 🎯 YouTube ID */
+// 🎯 YouTube ID
 function getVideoID(url) {
   const regex =
     /^(?:https?:\/\/)?(?:m\.|www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))((\w|-){11})(?:\S+)?$/;
@@ -54,30 +51,31 @@ function getVideoID(url) {
   return match ? match[1] : null;
 }
 
-/* ⚙ CONFIG */
+/* ⚙ CONFIG — name LOWERCASE is MUST */
 module.exports.config = {
   name: "video",
   version: "2.5.0",
-  credits: "ARIF-BABU",
+  credits: "Shaan Khan",
   hasPermssion: 0,
   cooldowns: 3,
-  description: "YouTube video download (prefix only)",
+  description: "YouTube video download (No prefix needed)",
   commandCategory: "media",
   usages: "video <name | link>"
 };
 
-/* ================= PREFIX MODE ONLY ================= */
+/* ================= PREFIX-FREE RUN ================= */
 module.exports.run = async function ({ api, args, event }) {
-
-  if (!args[0]) {
-    return api.sendMessage(
-      "❌ Video ka naam ya YouTube link do",
-      event.threadID,
-      event.messageID
-    );
-  }
-
   try {
+    if (!args[0]) {
+      return api.sendMessage(
+        "❌ Video ka naam ya YouTube link do",
+        event.threadID,
+        event.messageID
+      );
+    }
+
+    const input = args.join(" ");
+
     const loading = await api.sendMessage(
       "🔍 Processing...",
       event.threadID
@@ -89,7 +87,6 @@ module.exports.run = async function ({ api, args, event }) {
     }
 
     let videoID;
-    const input = args.join(" ");
 
     if (input.includes("youtu")) {
       videoID = getVideoID(input);
@@ -105,13 +102,22 @@ module.exports.run = async function ({ api, args, event }) {
       { timeout: 30000 }
     );
 
+    const shortLink = (
+      await axios.get(
+        `https://tinyurl.com/api-create.php?url=${encodeURIComponent(
+          data.downloadLink
+        )}`
+      )
+    ).data;
+
     api.unsendMessage(loading.messageID);
 
     return api.sendMessage(
       {
         body:
           `🎬 Title: ${data.title}\n` +
-          `📺 Quality: ${data.quality || "360p"}`,
+          `📺 Quality: ${data.quality || "360p"}\n` +
+          `📥 Download: ${shortLink}`,
         attachment: await getStreamFromURL(
           data.downloadLink,
           `${data.title}.mp4`
