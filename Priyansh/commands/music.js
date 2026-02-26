@@ -1,23 +1,34 @@
 const axios = require("axios");
 const yts = require("yt-search");
 
+/* 🔐 Credits Lock */
+function checkCredits() {
+  // Credits updated to Shaan Khan and locked
+  if (module.exports.config.credits !== "Shaan Khan") {
+    throw new Error("❌ Credits Locked By Shaan Khan");
+  }
+}
+
 /* 🎞 Loading Frames */
 const frames = [
   "🎵 ▰▱▱▱▱▱▱▱▱▱ 10%",
-  "🎶 ▰▰▰▰▱▱▱▱▱▱ 40%",
-  "🎧 ▰▰▰▰▰▰▱▱▱▱ 70%",
+  "🎶 ▰▰▱▱▱▱▱▱▱▱ 20%",
+  "🎧 ▰▰▰▰▱▱▱▱▱▱ 40%",
+  "💿 ▰▰▰▰▰▰▱▱▱▱ 60%",
   "❤️ ▰▰▰▰▰▰▰▰▰▰ 100%"
 ];
 
-/* 🌐 API Setup */
-const getBaseApi = async () => {
-  try {
-    const res = await axios.get("https://raw.githubusercontent.com/Mostakim0978/D1PT0/refs/heads/main/baseApiUrl.json");
-    return res.data.api;
-  } catch (e) {
-    return "https://d-api-24.onrender.com"; 
-  }
+/* 🌐 API */
+const baseApiUrl = async () => {
+  const res = await axios.get(
+    "https://raw.githubusercontent.com/Mostakim0978/D1PT0/refs/heads/main/baseApiUrl.json"
+  );
+  return res.data.api;
 };
+
+(async () => {
+  global.apis = { diptoApi: await baseApiUrl() };
+})();
 
 async function getStreamFromURL(url, name) {
   const res = await axios.get(url, { responseType: "stream" });
@@ -25,72 +36,93 @@ async function getStreamFromURL(url, name) {
   return res.data;
 }
 
-function cleanTitle(title = "") {
-  return title.replace(/[\\/:*?"<>|]/g, "").trim();
+function getVideoID(url) {
+  const r =
+    /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/))([\w-]{11})/;
+  const m = url.match(r);
+  return m ? m[1] : null;
 }
 
+/* ⚙ CONFIG */
 module.exports.config = {
   name: "music",
-  version: "2.5.0",
-  credits: "music", 
+  version: "1.3.5",
+  credits: "Shaan Khan", // Updated credit
   hasPermssion: 0,
   cooldowns: 5,
-  description: "Official YouTube MP3 Downloader",
+  description: "YouTube MP3 Downloader",
   commandCategory: "media",
   usages: "song <name | link>"
 };
 
+/* ================= PREFIX ONLY ================= */
 module.exports.run = async function ({ api, args, event }) {
-  if (!args[0]) {
-    return api.sendMessage("❌ Song ka naam ya YouTube link dein.", event.threadID, event.messageID);
-  }
-
   try {
-    const loading = await api.sendMessage("✅ Apki Request Jari Hai Please wait...", event.threadID);
+    checkCredits();
+
+    if (!args[0]) {
+      return api.sendMessage(
+        "❌ Song ka naam ya YouTube link do",
+        event.threadID,
+        event.messageID
+      );
+    }
+
+    const input = args.join(" ");
+
+    const loading = await api.sendMessage(
+      "🔍 Processing...",
+      event.threadID
+    );
 
     for (const f of frames) {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 400));
       await api.editMessage(f, loading.messageID);
     }
 
-    const diptoApi = await getBaseApi();
-    const input = args.join(" ");
-    
-    // Search query ko 'Official Music' ke liye optimize kiya gaya hai
-    const isLink = /youtu\.be|youtube\.com/.test(input);
-    const searchQuery = isLink ? input : `${input} official music video`;
-    
-    const search = await yts(searchQuery);
-    let video = null;
+    let videoID;
 
-    if (isLink) {
-        video = search.videos[0];
+    if (input.includes("youtu")) {
+      videoID = getVideoID(input);
+      if (!videoID) throw new Error("Invalid URL");
     } else {
-        /* 🛡️ OFFICIAL FILTER LOGIC 🛡️ */
-        // Search results mein se wo video select karega jo 'Topic', 'VEVO', ya 'Official' channel se ho
-        video = search.videos.find(v => 
-            v.author.name.toLowerCase().includes('official') || 
-            v.author.name.toLowerCase().includes('vevo') || 
-            v.author.name.toLowerCase().includes('topic')
-        ) || search.videos[0]; // Agar koi official match na mile, tab first result le
+      const res = await yts(input);
+      videoID = res.videos[0]?.videoId;
+      if (!videoID) throw new Error("No result");
     }
 
-    if (!video) {
-      return api.sendMessage("⚠️ Maaf kijiye, koi music result nahi mila.", event.threadID, event.messageID);
-    }
+    const { data } = await axios.get(
+      `${global.apis.diptoApi}/ytDl3?link=${videoID}&format=mp3`
+    );
 
-    // Download API call
-    const { data } = await axios.get(`${diptoApi}/ytDl3?link=${video.videoId}&format=mp3`);
+    const short = (
+      await axios.get(
+        `https://tinyurl.com/api-create.php?url=${encodeURIComponent(
+          data.downloadLink
+        )}`
+      )
+    ).data;
 
-    await api.unsendMessage(loading.messageID);
+    api.unsendMessage(loading.messageID);
 
-    return api.sendMessage({
-      body: `🎵 𝗧𝗶𝘁𝗹𝗲: ${video.title}\n👤 𝗔𝗿𝘁𝗶𝘀𝘁: ${video.author.name}\n⏱ 𝗗𝘂𝗿𝗮𝘁𝗶𝗼𝗻: ${video.timestamp}\n\n✅ Music Optimized & Verified`,
-      attachment: await getStreamFromURL(data.downloadLink, `${cleanTitle(video.title)}.mp3`)
-    }, event.threadID, event.messageID);
+    return api.sendMessage(
+      {
+        body: `🎵 ${data.title}\n🔗 ${short}`,
+        attachment: await getStreamFromURL(
+          data.downloadLink,
+          `${data.title}.mp3`
+        )
+      },
+      event.threadID,
+      event.messageID
+    );
 
   } catch (err) {
     console.error(err);
-    return api.sendMessage("⚠️ Error: Song download process fail ho gaya.", event.threadID, event.messageID);
+    return api.sendMessage(
+      "⚠️ Server busy ya API down 😢",
+      event.threadID,
+      event.messageID
+    );
   }
 };
