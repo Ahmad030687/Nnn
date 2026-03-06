@@ -1,4 +1,4 @@
-module.exports.config = {
+1111module.exports.config = {
 name: 'autosent',
 version: '10.02',
 hasPermssion: 0,
