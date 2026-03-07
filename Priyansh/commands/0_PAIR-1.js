@@ -5,7 +5,7 @@ const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "3.2.7",
+    version: "3.2.8",
     hasPermssion: 0,
     credits: "Shaan Khan",
     description: "Random pair with fixed canvas positioning",
@@ -43,14 +43,12 @@ module.exports.run = async function({ api, event, Users }) {
         ];
         const randomPoetry = poetryList[Math.floor(Math.random() * poetryList.length)];
 
-        // FIXED: New Background URL & Better Avatar URLs
         const bgUrl = "https://i.imgur.com/PnN4B93.jpeg"; 
         const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
         const avatarUrl2 = `https://graph.facebook.com/${randomID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
 
         async function getImg(url) {
             try {
-                // Added headers to mimic a browser to avoid getting blocked (Black Image fix)
                 const res = await axios.get(url, { 
                     responseType: 'arraybuffer', 
                     timeout: 15000,
@@ -58,8 +56,6 @@ module.exports.run = async function({ api, event, Users }) {
                 });
                 return await loadImage(Buffer.from(res.data));
             } catch (e) {
-                console.log(`Error loading image: ${url}`);
-                // Fallback to a default profile icon if FB fails
                 return await loadImage('https://i.imgur.com/6ve982S.png'); 
             }
         }
@@ -70,7 +66,6 @@ module.exports.run = async function({ api, event, Users }) {
             getImg(avatarUrl2)
         ]);
 
-        // Creating Canvas
         const canvas = createCanvas(bg.width, bg.height);
         const ctx = canvas.getContext('2d');
         
@@ -85,15 +80,15 @@ module.exports.run = async function({ api, event, Users }) {
             ctx.drawImage(img, x - radius, y - radius, radius * 2, radius * 2);
             ctx.restore();
             
-            // White Border
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 8;
             ctx.stroke();
         };
 
-        // Positions adjusted for the new background image
-        drawAvatar(avatar1, 185, 245, 110); 
-        drawAvatar(avatar2, 550, 245, 110); 
+        // --- POSITION FIX ---
+        // Pehle y = 245 tha, ab 215 kar diya hai taake thoda upar ho jaye
+        drawAvatar(avatar1, 185, 215, 110); 
+        drawAvatar(avatar2, 550, 215, 110); 
 
         if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
         fs.writeFileSync(cachePath, canvas.toBuffer());
@@ -108,7 +103,6 @@ module.exports.run = async function({ api, event, Users }) {
         }, messageID);
 
     } catch (err) {
-        console.error("PAIR ERROR:", err);
         return api.sendMessage(`❌ Error: ${err.message}`, threadID, messageID);
     }
 };
