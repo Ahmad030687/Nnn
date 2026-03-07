@@ -4,10 +4,10 @@ const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "2.4.0",
+    version: "2.5.0",
     hasPermssion: 0,
     credits: "Shaan Khan",
-    description: "Strict opposite gender match with poetry",
+    description: "Strict opposite gender match with fixed canvas coordinates",
     commandCategory: "fun",
     usages: "pair",
     cooldowns: 5
@@ -21,13 +21,11 @@ module.exports.run = async function({ api, event, Users }) {
         const threadInfo = await api.getThreadInfo(threadID);
         const senderInfo = await api.getUserInfo(senderID);
         
-        // Sender ka gender: 1 (Female), 2 (Male)
+        // Gender: 1 (Female), 2 (Male)
         const senderGender = senderInfo[senderID].gender;
         const senderName = senderInfo[senderID].name;
 
         // --- Gender Filter Logic ---
-        // Agar sender Male (2) hai to Target Female (1) hogi.
-        // Agar sender Female (1) hai to Target Male (2) hoga.
         const targetGender = (senderGender === 2) ? 1 : 2;
         
         let list = [];
@@ -41,7 +39,7 @@ module.exports.run = async function({ api, event, Users }) {
             }
         }
 
-        // Backup: Agar opposite gender ka koi bhi member group mein nahi mila
+        // Backup plan agar opposite gender na mile
         if (list.length === 0) {
             const otherMembers = allParticipants.filter(id => id != senderID && id != api.getCurrentUserID());
             if (otherMembers.length === 0) return api.sendMessage("Group mein koi aur member nahi mila!", threadID, messageID);
@@ -64,7 +62,7 @@ module.exports.run = async function({ api, event, Users }) {
         ];
         const randomPoetry = poetry[Math.floor(Math.random() * poetry.length)];
 
-        // --- Canvas Section ---
+        // --- Canvas Section (FIXED) ---
         const bgUrl = "https://i.imgur.com/fP8th1j.jpeg"; 
         const token = "6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
 
@@ -77,26 +75,35 @@ module.exports.run = async function({ api, event, Users }) {
             loadImage(avatarUrl2).catch(() => loadImage('https://i.imgur.com/6ve982S.png'))
         ]);
 
+        // Background size (720x480) ke mutabiq canvas create kiya
         const canvas = createCanvas(bg.width, bg.height);
         const ctx = canvas.getContext('2d');
         ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
 
-        // Circular Avatar Function
-        const drawAvatar = (img, x, y, size) => {
+        // Circular Avatar Drawing Function
+        const drawCircleAvatar = (img, centerX, centerY, radius) => {
             ctx.save();
             ctx.beginPath();
-            ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(img, x, y, size, size);
+            // Centering logic: (Center point - Radius)
+            ctx.drawImage(img, centerX - radius, centerY - radius, radius * 2, radius * 2);
             ctx.restore();
         };
 
-        // Coordinates fixed for fP8th1j.jpeg
-        drawAvatar(avatar1, 80, 145, 245); 
-        drawAvatar(avatar2, 675, 145, 245); 
+        /**
+         * FIXED COORDINATES FOR 720x480 IMAGE:
+         * Left Circle Center: X=185, Y=235
+         * Right Circle Center: X=535, Y=235
+         * Radius: 95
+         */
+        drawCircleAvatar(avatar1, 185, 235, 95); 
+        drawCircleAvatar(avatar2, 535, 235, 95); 
 
-        fs.writeFileSync(cachePath, canvas.toBuffer());
+        // Cache file save karein
+        const buffer = canvas.toBuffer();
+        fs.writeFileSync(cachePath, buffer);
 
         const msg = `💕 **Best Match Found!** 💕\n` +
                     `━━━━━━━━━━━━━━━━━━\n\n` +
