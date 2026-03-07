@@ -5,10 +5,10 @@ const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "3.2.8",
+    version: "3.2.9",
     hasPermssion: 0,
     credits: "Shaan Khan",
-    description: "Random pair with fixed canvas positioning",
+    description: "Random pair with centered avatar positioning",
     commandCategory: "fun",
     usages: "pair",
     cooldowns: 5
@@ -43,6 +43,7 @@ module.exports.run = async function({ api, event, Users }) {
         ];
         const randomPoetry = poetryList[Math.floor(Math.random() * poetryList.length)];
 
+        // HD Background URL
         const bgUrl = "https://i.imgur.com/PnN4B93.jpeg"; 
         const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
         const avatarUrl2 = `https://graph.facebook.com/${randomID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
@@ -80,15 +81,22 @@ module.exports.run = async function({ api, event, Users }) {
             ctx.drawImage(img, x - radius, y - radius, radius * 2, radius * 2);
             ctx.restore();
             
+            // Border adjustment
             ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 8;
+            ctx.lineWidth = 5;
             ctx.stroke();
         };
 
-        // --- POSITION FIX ---
-        // Pehle y = 245 tha, ab 215 kar diya hai taake thoda upar ho jaye
-        drawAvatar(avatar1, 185, 215, 110); 
-        drawAvatar(avatar2, 550, 215, 110); 
+        // --- POSITION FIX (Middle Alignment) ---
+        // Radius ko thoda adjust kiya hai taake frame mein fit aaye
+        const radius = 105; 
+        const centerY = 225; // Vertical center align
+
+        // Left Avatar (Sender) - Center se thoda left
+        drawAvatar(avatar1, 200, centerY, radius); 
+
+        // Right Avatar (Partner) - Center se thoda right
+        drawAvatar(avatar2, 535, centerY, radius); 
 
         if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
         fs.writeFileSync(cachePath, canvas.toBuffer());
