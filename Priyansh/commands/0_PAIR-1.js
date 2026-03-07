@@ -1,13 +1,14 @@
 const fs = require('fs-extra');
 const path = require('path');
+const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "3.0.0",
+    version: "3.2.0",
     hasPermssion: 0,
     credits: "Shaan Khan",
-    description: "Urdu pairing system with perfect image alignment",
+    description: "Random pair with beautiful Urdu poetry",
     commandCategory: "fun",
     usages: "pair",
     cooldowns: 5
@@ -20,58 +21,52 @@ module.exports.run = async function({ api, event, Users }) {
     try {
         const threadInfo = await api.getThreadInfo(threadID);
         const senderInfo = await api.getUserInfo(senderID);
-        
-        const senderGender = senderInfo[senderID].gender;
         const senderName = senderInfo[senderID].name;
-        const targetGender = (senderGender === 2) ? 1 : 2;
         
-        let list = [];
-        const allParticipants = threadInfo.participantIDs;
-
-        for (const id of allParticipants) {
-            if (id == senderID || id == api.getCurrentUserID()) continue;
-            const info = await api.getUserInfo(id);
-            if (info[id].gender === targetGender) {
-                list.push({ id, name: info[id].name });
-            }
+        // Randomly pick anyone from the group (excluding the bot and sender)
+        const allParticipants = threadInfo.participantIDs.filter(id => id != senderID && id != api.getCurrentUserID());
+        
+        if (allParticipants.length === 0) {
+            return api.sendMessage("Is group mein aapke ilawa koi aur nahi hai!", threadID, messageID);
         }
 
-        if (list.length === 0) {
-            const otherMembers = allParticipants.filter(id => id != senderID && id != api.getCurrentUserID());
-            if (otherMembers.length === 0) return api.sendMessage("Is group mein koi aur member nahi mila!", threadID, messageID);
-            const randomID = otherMembers[Math.floor(Math.random() * otherMembers.length)];
-            const info = await api.getUserInfo(randomID);
-            list.push({ id: randomID, name: info[randomID].name });
-        }
+        const randomID = allParticipants[Math.floor(Math.random() * allParticipants.length)];
+        const matchInfo = await api.getUserInfo(randomID);
+        const matchName = matchInfo[randomID].name;
 
-        const match = list[Math.floor(Math.random() * list.length)];
-        const matchPercentage = Math.floor(Math.random() * 41) + 60; // 60% to 100%
+        const matchPercentage = Math.floor(Math.random() * 41) + 60;
 
-        // New Imgur Link for your template
+        // Urdu Poetry List
+        const poetryList = [
+            "Hazaaron mein chuna hai aapko,\nBas ab hamesha saath rehna.. ✨",
+            "Suno! tum mere liye wahi ho,\nJo ek pyaasi zameen ke liye barish.. 🌧️",
+            "Kitna haseen hota hai woh lamha,\nJab do ajnabi ek pyaari jodi ban jate hain.. ❤️",
+            "Mili hai aaj humein woh jodi,\nJis ki misaal saari mehfil degi.. 🌹",
+            "Log kehte hain jodiyaan upar se banti hain,\nLagta hai humne aaj zameen par hi milwa di.. ✨",
+            "Ek naam tera, ek naam mera..\nBas yuhi rahe ye saath silsila tera mera.. ❤️"
+        ];
+        const randomPoetry = poetryList[Math.floor(Math.random() * poetryList.length)];
+
+        // Image Logic
         const bgUrl = "https://i.imgur.com/fP8th1j.jpeg"; 
-        const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512`;
-        const avatarUrl2 = `https://graph.facebook.com/${match.id}/picture?width=512&height=512`;
+        const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+        const avatarUrl2 = `https://graph.facebook.com/${randomID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+
+        async function getImg(url) {
+            const res = await axios.get(url, { responseType: 'arraybuffer' });
+            return await loadImage(Buffer.from(res.data, 'utf-8'));
+        }
 
         const [bg, avatar1, avatar2] = await Promise.all([
             loadImage(bgUrl),
-            loadImage(avatarUrl1).catch(() => loadImage('https://i.imgur.com/6ve982S.png')),
-            loadImage(avatarUrl2).catch(() => loadImage('https://i.imgur.com/6ve982S.png'))
+            getImg(avatarUrl1).catch(() => loadImage('https://i.imgur.com/6ve982S.png')),
+            getImg(avatarUrl2).catch(() => loadImage('https://i.imgur.com/6ve982S.png'))
         ]);
 
-        // Original Template Size: 736x464 (Based on the uploaded image aspect)
         const canvas = createCanvas(736, 464);
         const ctx = canvas.getContext('2d');
-        
-        // Background draw karein
         ctx.drawImage(bg, 0, 0, 736, 464);
 
-        /**
-         * Circle Draw Function
-         * @param {Image} img - User Profile Picture
-         * @param {Number} x - Center X coordinate
-         * @param {Number} y - Center Y coordinate
-         * @param {Number} radius - Circle size
-         */
         const drawAvatar = (img, x, y, radius) => {
             ctx.save();
             ctx.beginPath();
@@ -82,32 +77,29 @@ module.exports.run = async function({ api, event, Users }) {
             ctx.restore();
         };
 
-        // Coordinates adjusted for your specific frame
-        // Left Circle: X=215, Y=228 | Right Circle: X=521, Y=228
         drawAvatar(avatar1, 215, 228, 115); 
         drawAvatar(avatar2, 521, 228, 115); 
 
-        const buffer = canvas.toBuffer();
-        fs.writeFileSync(cachePath, buffer);
+        fs.writeFileSync(cachePath, canvas.toBuffer());
 
-        const msg = `🌹 **Aapki Jodi Mil Gayi Hai!** 🌹\n` +
+        const msg = `💞 **Haseen Jodi Mil Gayi Hai!** 💞\n` +
                     `━━━━━━━━━━━━━━━━━━\n\n` +
                     `👤 **Aap:** ${senderName}\n` +
-                    `👤 **Aapka Partner:** ${match.name}\n\n` +
-                    `💓 **Compatibility:** ${matchPercentage}%\n` +
-                    `✨ **Mubarak Ho! Yeh jodi bohot pyari hai.** ✨\n\n` +
-                    `Credits: Shaan Khan`;
+                    `👤 **Aapka Partner:** ${matchName}\n\n` +
+                    `📝 **Shayari:**\n"${randomPoetry}"\n\n` +
+                    `💓 **Compatibility:** ${matchPercentage}%\n\n` +
+                    `✨ **Mubarak Ho! Yeh jodi bohot pyari hai.** ✨`;
 
         return api.sendMessage({
             body: msg,
             attachment: fs.createReadStream(cachePath),
-            mentions: [{ tag: senderName, id: senderID }, { tag: match.name, id: match.id }]
+            mentions: [{ tag: senderName, id: senderID }, { tag: matchName, id: randomID }]
         }, threadID, () => {
             if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
         }, messageID);
 
     } catch (err) {
         console.error(err);
-        return api.sendMessage("❌ Maazrat! Image banane mein masla hua.", threadID, messageID);
+        return api.sendMessage("❌ Error: Profile images load nahi ho sakein.", threadID, messageID);
     }
 };
