@@ -4,10 +4,10 @@ const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "2.9.0",
+    version: "3.0.0",
     hasPermssion: 0,
     credits: "Shaan Khan",
-    description: "Urdu system with perfect pairing percentage",
+    description: "Urdu pairing system with perfect image alignment",
     commandCategory: "fun",
     usages: "pair",
     cooldowns: 5
@@ -36,7 +36,6 @@ module.exports.run = async function({ api, event, Users }) {
             }
         }
 
-        // Agar opposite gender na mile to kisi bhi member ko utha lo
         if (list.length === 0) {
             const otherMembers = allParticipants.filter(id => id != senderID && id != api.getCurrentUserID());
             if (otherMembers.length === 0) return api.sendMessage("Is group mein koi aur member nahi mila!", threadID, messageID);
@@ -46,10 +45,10 @@ module.exports.run = async function({ api, event, Users }) {
         }
 
         const match = list[Math.floor(Math.random() * list.length)];
-        const matchPercentage = Math.floor(Math.random() * 51) + 50; // 50% se 100% ke darmiyan
+        const matchPercentage = Math.floor(Math.random() * 41) + 60; // 60% to 100%
 
-        // Image template aur Avatars
-        const bgUrl = "https://i.imgur.com/fP8th1j.jpeg"; 
+        // New Imgur Link for your template
+        const bgUrl = "https://i.imgur.com/W2O3Bsm.png"; 
         const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512`;
         const avatarUrl2 = `https://graph.facebook.com/${match.id}/picture?width=512&height=512`;
 
@@ -59,12 +58,21 @@ module.exports.run = async function({ api, event, Users }) {
             loadImage(avatarUrl2).catch(() => loadImage('https://i.imgur.com/6ve982S.png'))
         ]);
 
-        // Canvas 720x480 fix
-        const canvas = createCanvas(720, 480);
+        // Original Template Size: 736x464 (Based on the uploaded image aspect)
+        const canvas = createCanvas(736, 464);
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(bg, 0, 0, 720, 480);
+        
+        // Background draw karein
+        ctx.drawImage(bg, 0, 0, 736, 464);
 
-        const drawCircle = (img, x, y, radius) => {
+        /**
+         * Circle Draw Function
+         * @param {Image} img - User Profile Picture
+         * @param {Number} x - Center X coordinate
+         * @param {Number} y - Center Y coordinate
+         * @param {Number} radius - Circle size
+         */
+        const drawAvatar = (img, x, y, radius) => {
             ctx.save();
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2, true);
@@ -74,19 +82,19 @@ module.exports.run = async function({ api, event, Users }) {
             ctx.restore();
         };
 
-        // Exact Coordinates (Left: 184, Right: 536)
-        drawCircle(avatar1, 184, 236, 96); 
-        drawCircle(avatar2, 536, 236, 96); 
+        // Coordinates adjusted for your specific frame
+        // Left Circle: X=215, Y=228 | Right Circle: X=521, Y=228
+        drawAvatar(avatar1, 215, 228, 115); 
+        drawAvatar(avatar2, 521, 228, 115); 
 
         const buffer = canvas.toBuffer();
         fs.writeFileSync(cachePath, buffer);
 
-        // Urdu/Roman Message System
         const msg = `🌹 **Aapki Jodi Mil Gayi Hai!** 🌹\n` +
                     `━━━━━━━━━━━━━━━━━━\n\n` +
                     `👤 **Aap:** ${senderName}\n` +
                     `👤 **Aapka Partner:** ${match.name}\n\n` +
-                    `💓 **Pairing Compatibility:** ${matchPercentage}%\n` +
+                    `💓 **Compatibility:** ${matchPercentage}%\n` +
                     `✨ **Mubarak Ho! Yeh jodi bohot pyari hai.** ✨\n\n` +
                     `Credits: Shaan Khan`;
 
