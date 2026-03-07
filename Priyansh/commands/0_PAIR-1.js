@@ -48,7 +48,7 @@ module.exports.run = async function({ api, event, Users }) {
         const matchPercentage = Math.floor(Math.random() * 41) + 60; // 60% to 100%
 
         // New Imgur Link for your template
-        const bgUrl = "https://i.imgur.com/W2O3Bsm.png"; 
+        const bgUrl = "https://i.imgur.com/fP8th1j.jpeg"; 
         const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512`;
         const avatarUrl2 = `https://graph.facebook.com/${match.id}/picture?width=512&height=512`;
 
