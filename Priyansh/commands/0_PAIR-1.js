@@ -4,10 +4,10 @@ const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "2.5.0",
+    version: "2.9.0",
     hasPermssion: 0,
     credits: "Shaan Khan",
-    description: "Strict opposite gender match with fixed canvas coordinates",
+    description: "Urdu system with perfect pairing percentage",
     commandCategory: "fun",
     usages: "pair",
     cooldowns: 5
@@ -21,11 +21,8 @@ module.exports.run = async function({ api, event, Users }) {
         const threadInfo = await api.getThreadInfo(threadID);
         const senderInfo = await api.getUserInfo(senderID);
         
-        // Gender: 1 (Female), 2 (Male)
         const senderGender = senderInfo[senderID].gender;
         const senderName = senderInfo[senderID].name;
-
-        // --- Gender Filter Logic ---
         const targetGender = (senderGender === 2) ? 1 : 2;
         
         let list = [];
@@ -39,35 +36,22 @@ module.exports.run = async function({ api, event, Users }) {
             }
         }
 
-        // Backup plan agar opposite gender na mile
+        // Agar opposite gender na mile to kisi bhi member ko utha lo
         if (list.length === 0) {
             const otherMembers = allParticipants.filter(id => id != senderID && id != api.getCurrentUserID());
-            if (otherMembers.length === 0) return api.sendMessage("Group mein koi aur member nahi mila!", threadID, messageID);
-            
+            if (otherMembers.length === 0) return api.sendMessage("Is group mein koi aur member nahi mila!", threadID, messageID);
             const randomID = otherMembers[Math.floor(Math.random() * otherMembers.length)];
             const info = await api.getUserInfo(randomID);
             list.push({ id: randomID, name: info[randomID].name });
         }
 
         const match = list[Math.floor(Math.random() * list.length)];
-        const matchPercentage = Math.floor(Math.random() * 31) + 70;
+        const matchPercentage = Math.floor(Math.random() * 51) + 50; // 50% se 100% ke darmiyan
 
-        // Poetry Collection
-        const poetry = [
-            "Hazaaron mein chunna hai tumhein,\nTum mere hone ka maan rakhna! ❤️",
-            "Suno! tumhara milna naseeb ki baat thi,\nAur tumhara mil jana zindagi ki! ✨",
-            "Mohabbat ke bazar mein bheed bohot hai,\nLekin mera sukoon sirf tum ho! 🌹",
-            "Rab ne banadi ye jodi kamaal hai,\nEk phool hai toh doosra bemisaal hai! 🌸",
-            "Tumhara naam aur mera naam saath kitna jachta hai,\nJaise koi purana rishta aaj phir se nikharta hai! ✨"
-        ];
-        const randomPoetry = poetry[Math.floor(Math.random() * poetry.length)];
-
-        // --- Canvas Section (FIXED) ---
+        // Image template aur Avatars
         const bgUrl = "https://i.imgur.com/fP8th1j.jpeg"; 
-        const token = "6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
-
-        const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=${token}`;
-        const avatarUrl2 = `https://graph.facebook.com/${match.id}/picture?width=512&height=512&access_token=${token}`;
+        const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512`;
+        const avatarUrl2 = `https://graph.facebook.com/${match.id}/picture?width=512&height=512`;
 
         const [bg, avatar1, avatar2] = await Promise.all([
             loadImage(bgUrl),
@@ -75,43 +59,35 @@ module.exports.run = async function({ api, event, Users }) {
             loadImage(avatarUrl2).catch(() => loadImage('https://i.imgur.com/6ve982S.png'))
         ]);
 
-        // Background size (720x480) ke mutabiq canvas create kiya
-        const canvas = createCanvas(bg.width, bg.height);
+        // Canvas 720x480 fix
+        const canvas = createCanvas(720, 480);
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(bg, 0, 0, 720, 480);
 
-        // Circular Avatar Drawing Function
-        const drawCircleAvatar = (img, centerX, centerY, radius) => {
+        const drawCircle = (img, x, y, radius) => {
             ctx.save();
             ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.arc(x, y, radius, 0, Math.PI * 2, true);
             ctx.closePath();
             ctx.clip();
-            // Centering logic: (Center point - Radius)
-            ctx.drawImage(img, centerX - radius, centerY - radius, radius * 2, radius * 2);
+            ctx.drawImage(img, x - radius, y - radius, radius * 2, radius * 2);
             ctx.restore();
         };
 
-        /**
-         * FIXED COORDINATES FOR 720x480 IMAGE:
-         * Left Circle Center: X=185, Y=235
-         * Right Circle Center: X=535, Y=235
-         * Radius: 95
-         */
-        drawCircleAvatar(avatar1, 185, 235, 95); 
-        drawCircleAvatar(avatar2, 535, 235, 95); 
+        // Exact Coordinates (Left: 184, Right: 536)
+        drawCircle(avatar1, 184, 236, 96); 
+        drawCircle(avatar2, 536, 236, 96); 
 
-        // Cache file save karein
         const buffer = canvas.toBuffer();
         fs.writeFileSync(cachePath, buffer);
 
-        const msg = `💕 **Best Match Found!** 💕\n` +
+        // Urdu/Roman Message System
+        const msg = `🌹 **Aapki Jodi Mil Gayi Hai!** 🌹\n` +
                     `━━━━━━━━━━━━━━━━━━\n\n` +
                     `👤 **Aap:** ${senderName}\n` +
-                    `👤 **Partner:** ${match.name}\n` +
-                    `💓 **Compatibility:** ${matchPercentage}%\n\n` +
-                    `📖 **Shayari:**\n_${randomPoetry}_\n\n` +
-                    `✨ Yeh jodi naseeb se milti hai! ✨\n` +
+                    `👤 **Aapka Partner:** ${match.name}\n\n` +
+                    `💓 **Pairing Compatibility:** ${matchPercentage}%\n` +
+                    `✨ **Mubarak Ho! Yeh jodi bohot pyari hai.** ✨\n\n` +
                     `Credits: Shaan Khan`;
 
         return api.sendMessage({
@@ -124,6 +100,6 @@ module.exports.run = async function({ api, event, Users }) {
 
     } catch (err) {
         console.error(err);
-        return api.sendMessage("❌ Error: Kuch masla pesh aaya. Dobara koshish karein.", threadID, messageID);
+        return api.sendMessage("❌ Maazrat! Image banane mein masla hua.", threadID, messageID);
     }
 };
