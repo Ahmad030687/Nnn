@@ -75,8 +75,8 @@ module.exports.run = async function({ api, event, Users }) {
         };
 
         // Profile pictures adjustment
-        drawAvatar(avatar1, 230, 223, 120); 
-        drawAvatar(avatar2, 530, 223, 120); 
+        drawAvatar(avatar1, 230, 233, 125); 
+        drawAvatar(avatar2, 530, 233, 125); 
 
         fs.writeFileSync(cachePath, canvas.toBuffer());
 
