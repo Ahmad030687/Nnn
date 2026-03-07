@@ -5,7 +5,7 @@ const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "3.2.0",
+    version: "3.2.3",
     hasPermssion: 0,
     credits: "Shaan Khan",
     description: "Random pair with beautiful Urdu poetry",
@@ -23,7 +23,6 @@ module.exports.run = async function({ api, event, Users }) {
         const senderInfo = await api.getUserInfo(senderID);
         const senderName = senderInfo[senderID].name;
         
-        // Randomly pick anyone from the group (excluding the bot and sender)
         const allParticipants = threadInfo.participantIDs.filter(id => id != senderID && id != api.getCurrentUserID());
         
         if (allParticipants.length === 0) {
@@ -36,7 +35,6 @@ module.exports.run = async function({ api, event, Users }) {
 
         const matchPercentage = Math.floor(Math.random() * 41) + 60;
 
-        // Urdu Poetry List
         const poetryList = [
             "Hazaaron mein chuna hai aapko,\nBas ab hamesha saath rehna.. ✨",
             "Suno! tum mere liye wahi ho,\nJo ek pyaasi zameen ke liye barish.. 🌧️",
@@ -47,7 +45,6 @@ module.exports.run = async function({ api, event, Users }) {
         ];
         const randomPoetry = poetryList[Math.floor(Math.random() * poetryList.length)];
 
-        // Image Logic
         const bgUrl = "https://i.imgur.com/fP8th1j.jpeg"; 
         const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
         const avatarUrl2 = `https://graph.facebook.com/${randomID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
@@ -77,23 +74,24 @@ module.exports.run = async function({ api, event, Users }) {
             ctx.restore();
         };
 
-        drawAvatar(avatar1, 213, 227, 112); 
-        drawAvatar(avatar2, 519, 227, 112); 
+        // Profile pictures adjustment
+        drawAvatar(avatar1, 222, 222, 108); 
+        drawAvatar(avatar2, 514, 222, 108); 
 
         fs.writeFileSync(cachePath, canvas.toBuffer());
 
-        const msg = `💞 **Haseen Jodi Mil Gayi Hai!** 💞\n` +
+        // Text message without ** symbols
+        const msg = `💞 Haseen Jodi Mil Gayi Hai! 💞\n` +
                     `━━━━━━━━━━━━━━━━━━\n\n` +
-                    `👤 **Aap:** ${senderName}\n` +
-                    `👤 **Aapka Partner:** ${matchName}\n\n` +
-                    `📝 **Shayari:**\n"${randomPoetry}"\n\n` +
-                    `💓 **Compatibility:** ${matchPercentage}%\n\n` +
-                    `✨ **Mubarak Ho! Yeh jodi bohot pyari hai.** ✨`;
+                    `👤 Aap: ${senderName}\n` +
+                    `👤 Aapka Partner: ${matchName}\n\n` +
+                    `📝 Shayari:\n"${randomPoetry}"\n\n` +
+                    `💓 Compatibility: ${matchPercentage}%\n\n` +
+                    `✨ Mubarak Ho! Yeh jodi bohot pyari hai. ✨`;
 
         return api.sendMessage({
             body: msg,
-            attachment: fs.createReadStream(cachePath),
-            mentions: [{ tag: senderName, id: senderID }, { tag: matchName, id: randomID }]
+            attachment: fs.createReadStream(cachePath)
         }, threadID, () => {
             if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
         }, messageID);
