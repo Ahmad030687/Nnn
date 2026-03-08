@@ -5,87 +5,110 @@ const { createCanvas, loadImage } = require('canvas');
 
 module.exports.config = {
     name: "pair",
-    version: "3.3.0",
+    version: "3.2.7",
     hasPermssion: 0,
     credits: "Shaan Khan",
-    description: "Perfectly Aligned Pair Frame",
+    description: "Random pair with fixed canvas positioning",
     commandCategory: "fun",
     usages: "pair",
-    cooldowns: 10
+    cooldowns: 5
 };
 
 module.exports.run = async function({ api, event, Users }) {
     const { threadID, messageID, senderID } = event;
-    const cachePath = path.join(__dirname, 'cache', `perfect_pair_${senderID}.png`);
+    const cacheDir = path.join(__dirname, 'cache');
+    const cachePath = path.join(cacheDir, `pair_${senderID}_${Date.now()}.png`);
 
     try {
         const threadInfo = await api.getThreadInfo(threadID);
         const allParticipants = threadInfo.participantIDs.filter(id => id != senderID && id != api.getCurrentUserID());
 
-        if (allParticipants.length === 0) return api.sendMessage("Group mein koi aur nahi hai!", threadID, messageID);
+        if (allParticipants.length === 0) {
+            return api.sendMessage("Is group mein aapke ilawa koi aur nahi hai!", threadID, messageID);
+        }
 
         const randomID = allParticipants[Math.floor(Math.random() * allParticipants.length)];
-        
-        // URLs
+
+        const senderData = await Users.getData(senderID) || {};
+        const matchData = await Users.getData(randomID) || {};
+        const senderName = senderData.name || "User";
+        const matchName = matchData.name || "Partner";
+
+        const matchPercentage = Math.floor(Math.random() * 41) + 60;
+        const poetryList = [
+            "Hazaaron mein chuna hai aapko,\nBas ab hamesha saath rehna.. ✨",
+            "Suno! tum mere liye wahi ho,\nJo ek pyaasi zameen ke liye barish.. 🌧️",
+            "Kitna haseen hota hai woh lamha,\nJab do ajnabi ek pyaari jodi ban jate hain.. ❤️",
+            "Mili hai aaj humein woh jodi,\nJis ki misaal saari mehfil degi.. 🌹"
+        ];
+        const randomPoetry = poetryList[Math.floor(Math.random() * poetryList.length)];
+
+        // FIXED: New Background URL & Better Avatar URLs
         const bgUrl = "https://i.imgur.com/PnN4B93.jpeg"; 
         const avatarUrl1 = `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
         const avatarUrl2 = `https://graph.facebook.com/${randomID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
 
         async function getImg(url) {
-            const res = await axios.get(url, { 
-                responseType: 'arraybuffer',
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
-            return await loadImage(Buffer.from(res.data));
+            try {
+                // Added headers to mimic a browser to avoid getting blocked (Black Image fix)
+                const res = await axios.get(url, { 
+                    responseType: 'arraybuffer', 
+                    timeout: 15000,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                return await loadImage(Buffer.from(res.data));
+            } catch (e) {
+                console.log(`Error loading image: ${url}`);
+                // Fallback to a default profile icon if FB fails
+                return await loadImage('https://i.imgur.com/6ve982S.png'); 
+            }
         }
 
-        const [bg, avt1, avt2] = await Promise.all([getImg(bgUrl), getImg(avatarUrl1), getImg(avatarUrl2)]);
+        const [bg, avatar1, avatar2] = await Promise.all([
+            getImg(bgUrl),
+            getImg(avatarUrl1),
+            getImg(avatarUrl2)
+        ]);
 
-        // 720x480 resolution setup
-        const canvas = createCanvas(720, 480);
+        // Creating Canvas
+        const canvas = createCanvas(bg.width, bg.height);
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(bg, 0, 0, 720, 480);
+
+        ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
 
         const drawAvatar = (img, x, y, radius) => {
             ctx.save();
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2, true);
+            ctx.closePath();
             ctx.clip();
             ctx.drawImage(img, x - radius, y - radius, radius * 2, radius * 2);
             ctx.restore();
-            // Rings ke sath match karne ke liye white stroke
-            ctx.strokeStyle = "#fff";
-            ctx.lineWidth = 2;
+
+            // White Border
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 8;
             ctx.stroke();
         };
 
-        // --- PERFECT POSITIONING ---
-        // Left Circle (Thoda upar aur left hai)
-        drawAvatar(avt1, 230, 195, 112); 
-        
-        // Right Circle (Thoda upar aur right hai)
-        drawAvatar(avt2, 735, 195, 112); 
-        // Note: Frame design ke mutabiq 2nd avatar right side wala circle hai.
-        // Agar image cut rahi ho toh x value ko 500-550 ke beech adjust karein.
+        // Positions adjusted for the new background image
+        drawAvatar(avatar1, 161, 226, 110); 
+        drawAvatar(avatar2, 555, 226, 110); 
 
-        // Fix for 720x480 specifically for your image:
-        // Left: x=235, y=210, r=105
-        // Right: x=485, y=210, r=105
-        
-        // Re-aligning based on your specific template:
-        ctx.clearRect(0,0,720,480); // Resetting for clean draw
-        ctx.drawImage(bg, 0, 0, 720, 480);
-        drawAvatar(avt1, 258, 245, 108); // Left center
-        drawAvatar(avt2, 742, 245, 108); // Right center - Adjusted for your frame's width
-
+        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
         fs.writeFileSync(cachePath, canvas.toBuffer());
 
-        api.sendMessage({
-            body: "💞 Ab check karein, perfect jodi! 💞",
+        const msg = {
+            body: `💞 Haseen Jodi Mil Gayi Hai! 💞\n━━━━━━━━━━━━━━━━━━\n\n👤 Aap: ${senderName}\n👤 Partner: ${matchName}\n\n📝 Shayari:\n${randomPoetry}\n\n💓 Compatibility: ${matchPercentage}%\n\n✨ Mubarak Ho! ✨`,
             attachment: fs.createReadStream(cachePath)
-        }, threadID, () => { if(fs.existsSync(cachePath)) fs.unlinkSync(cachePath) }, messageID);
+        };
 
-    } catch (e) {
-        api.sendMessage(`Error: ${e.message}`, threadID, messageID);
+        return api.sendMessage(msg, threadID, () => {
+            if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+        }, messageID);
+
+    } catch (err) {
+        console.error("PAIR ERROR:", err);
+        return api.sendMessage(`❌ Error: ${err.message}`, threadID, messageID);
     }
 };
