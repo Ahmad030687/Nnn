@@ -38,7 +38,7 @@ module.exports.onStart = async function ({ api, event, args }) {
       },
       {
         headers: {
-          "Authorization": "Bearer YOUR_GROK_API_KEY", // <--- Apni key yahan lagao
+          "Authorization": "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", // <--- Apni key yahan lagao
           "Content-Type": "application/json"
         }
       }
