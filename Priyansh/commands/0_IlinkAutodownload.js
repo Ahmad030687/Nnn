@@ -61,7 +61,7 @@ module.exports = {
         fs.writeFileSync(cachePath, Buffer.from(response.data, "binary"));
 
         const videoTitle = res.data.title || "Social Media Video";
-        const caption = `✨❁ ━━ ━[ 𝐎𝐖𝐍𝐄𝐑 ]━ ━━ ❁✨\n\nᴛɪᴛʟᴇ: ${videoTitle} 💔\n\n✨❁ ━━ ━[ 𝑺𝑯𝑨𝑨𝑵 ]━ ━━ ❁✨`;
+        const caption = `✨❁ ━━ ━[ 𝐎𝐖𝐍𝐄𝐑 ]━ ━━ ❁✨\n\nᴛɪᴛʟᴇ: ${videoTitle} 💔\n\n✨❁ ━━ ━[ 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗 ]━ ━━ ❁✨`;
 
         // 3. Send and Success Reaction
         return api.sendMessage({
