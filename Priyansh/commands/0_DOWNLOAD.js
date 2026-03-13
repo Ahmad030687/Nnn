@@ -47,7 +47,7 @@ module.exports = {
 
       // Send message with attachment
       api.sendMessage({
-        body: `✨❁ ━━ ━[ 𝑺𝑯𝑨𝑨𝑵 ]━ ━━ ❁✨\n\ntitle: ${title}\n\n`,
+        body: `✨❁ ━━ ━[ 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗 ]━ ━━ ❁✨\n\ntitle: ${title}\n\n`,
         attachment: fs.createReadStream(__dirname + '/cache/auto.mp4')
       }, event.threadID, event.messageID);
     }
