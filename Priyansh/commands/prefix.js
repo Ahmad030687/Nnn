@@ -57,8 +57,8 @@ module.exports.handleEvent = async ({ api, event, global, client }) => {
 𝐓𝐈𝐌𝐄 ➢${time}
 𝐆𝐑𝐎𝐔𝐏 𝐍𝐀𝐌𝐄
 ${diptoName}
-𝐎𝐖𝐍𝐄𝐑➢ 𝐒𝐇𝐀𝐀𝐍 𝐊𝐇𝐀𝐍
-𝐂𝐫𝐞𝐚𝐭𝐨𝐫 ━➢ 𝐒𝐇𝐀𝐀𝐍 𝐃𝐑`
+𝐎𝐖𝐍𝐄𝐑➢ 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗
+𝐂𝐫𝐞𝐚𝐭𝐨𝐫 ━➢ 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗`
 
             const imgur = ["https://i.imgur.com/P0VqFW2.jpeg"];
             const link = imgur[Math.floor(Math.random() * imgur.length)];
