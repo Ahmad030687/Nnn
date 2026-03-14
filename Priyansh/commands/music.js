@@ -1,128 +1,153 @@
-const axios = require("axios");
-const yts = require("yt-search");
 
-/* 🔐 Credits Lock */
-function checkCredits() {
-  // Credits updated to Shaan Khan and locked
-  if (module.exports.config.credits !== "Shaan Khan") {
-    throw new Error("❌ Credits Locked By Shaan Khan");
-  }
-}
+const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
+const yts = require('yt-search');
 
-/* 🎞 Loading Frames */
-const frames = [
-  "🎵 ▰▱▱▱▱▱▱▱▱▱ 10%",
-  "🎶 ▰▰▱▱▱▱▱▱▱▱ 20%",
-  "🎧 ▰▰▰▰▱▱▱▱▱▱ 40%",
-  "💿 ▰▰▰▰▰▰▱▱▱▱ 60%",
-  "❤️ ▰▰▰▰▰▰▰▰▰▰ 100%"
-];
-
-/* 🌐 API */
-const baseApiUrl = async () => {
-  const res = await axios.get(
-    "https://raw.githubusercontent.com/Mostakim0978/D1PT0/refs/heads/main/baseApiUrl.json"
-  );
-  return res.data.api;
-};
-
-(async () => {
-  global.apis = { diptoApi: await baseApiUrl() };
-})();
-
-async function getStreamFromURL(url, name) {
-  const res = await axios.get(url, { responseType: "stream" });
-  res.data.path = name;
-  return res.data;
-}
-
-function getVideoID(url) {
-  const r =
-    /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/))([\w-]{11})/;
-  const m = url.match(r);
-  return m ? m[1] : null;
-}
-
-/* ⚙ CONFIG */
 module.exports.config = {
-  name: "music",
-  version: "1.3.5",
-  credits: "Shaan Khan", // Updated credit
-  hasPermssion: 0,
-  cooldowns: 5,
-  description: "YouTube MP3 Downloader",
-  commandCategory: "media",
-  usages: "song <name | link>"
+    name: "music",
+    version: "3.0.0",
+    permission: 0,
+    prefix: true,
+    premium: false,
+    category: "media",
+    credits: "Kashif Raza",
+    description: "Download music from YouTube",
+    commandCategory: "media",
+    usages: ".music [song name]",
+    cooldowns: 5
 };
 
-/* ================= PREFIX ONLY ================= */
-module.exports.run = async function ({ api, args, event }) {
-  try {
-    checkCredits();
-
-    if (!args[0]) {
-      return api.sendMessage(
-        "❌ Song ka naam ya YouTube link do",
-        event.threadID,
-        event.messageID
-      );
+module.exports.run = async function ({ api, event, args }) {
+    const query = args.join(" ");
+    
+    if (!query) {
+        return api.sendMessage("❌ Please provide a song name", event.threadID, event.messageID);
     }
 
-    const input = args.join(" ");
+    const frames = [
+        "🩵▰▱▱▱▱▱▱▱▱▱ 10%",
+        "💙▰▰▱▱▱▱▱▱▱▱ 25%",
+        "💜▰▰▰▰▱▱▱▱▱▱ 45%",
+        "💖▰▰▰▰▰▰▱▱▱▱ 70%",
+        "💗▰▰▰▰▰▰▰▰▰▰ 100% 😍"
+    ];
 
-    const loading = await api.sendMessage(
-      "🔍 Processing...",
-      event.threadID
-    );
+    const searchMsg = await api.sendMessage(`🔍 Searching...\n\n${frames[0]}`, event.threadID);
 
-    for (const f of frames) {
-      await new Promise(r => setTimeout(r, 400));
-      await api.editMessage(f, loading.messageID);
+    try {
+        // Search using yt-search
+        const searchResults = await yts(query);
+        const videos = searchResults.videos;
+        
+        if (!videos || videos.length === 0) {
+            api.unsendMessage(searchMsg.messageID);
+            return api.sendMessage("❌ No results found", event.threadID, event.messageID);
+        }
+
+        const firstResult = videos[0];
+        const videoUrl = firstResult.url;
+        const title = firstResult.title;
+        const author = firstResult.author.name;
+
+        await api.editMessage(`🎵 Music found!\n\n${frames[1]}`, searchMsg.messageID, event.threadID);
+
+        await api.editMessage(`🎵 Downloading...\n\n${frames[2]}`, searchMsg.messageID, event.threadID);
+
+        // Fetch download URL using new API
+        let fetchRes;
+        try {
+            const apiUrl = `https://api.kraza.qzz.io/download/ytdl?url=${encodeURIComponent(videoUrl)}`;
+            fetchRes = await axios.get(apiUrl, {
+                headers: {
+                    'Accept': 'application/json'
+                },
+                timeout: 60000
+            });
+        } catch (fetchError) {
+            api.unsendMessage(searchMsg.messageID);
+            return api.sendMessage(`❌ Failed to fetch download link: ${fetchError.message}`, event.threadID, event.messageID);
+        }
+
+        if (!fetchRes.data.status || !fetchRes.data.result || !fetchRes.data.result.mp3) {
+            api.unsendMessage(searchMsg.messageID);
+            return api.sendMessage("❌ Failed to get mp3 download URL", event.threadID, event.messageID);
+        }
+
+        const downloadUrl = fetchRes.data.result.mp3;
+        const thumbnail = firstResult.thumbnail; // Using yt-search thumbnail as fallback
+
+        await api.editMessage(`🎵 Processing...\n\n${frames[3]}`, searchMsg.messageID, event.threadID);
+
+        // Download the audio file
+        let audioRes;
+        try {
+            audioRes = await axios.get(downloadUrl, {
+                responseType: 'arraybuffer',
+                timeout: 180000
+            });
+        } catch (downloadError) {
+            api.unsendMessage(searchMsg.messageID);
+            return api.sendMessage(`❌ Download failed: ${downloadError.message}\n\nPlease try again later.`, event.threadID, event.messageID);
+        }
+
+        const cacheDir = path.join(__dirname, "cache");
+        await fs.ensureDir(cacheDir);
+
+        // Save as mpeg first, then rename to mp3
+        const tempPath = path.join(cacheDir, `${Date.now()}_audio.mpeg`);
+        const audioPath = path.join(cacheDir, `${Date.now()}_audio.mp3`);
+        fs.writeFileSync(tempPath, audioRes.data);
+        fs.renameSync(tempPath, audioPath);
+
+        setTimeout(() => {
+            api.editMessage(`🎵 Complete!\n\n${frames[4]}`, searchMsg.messageID, event.threadID);
+        }, 500);
+
+        let thumbPath = null;
+        if (thumbnail) {
+            try {
+                const thumbRes = await axios.get(thumbnail, { responseType: 'arraybuffer' });
+                thumbPath = path.join(cacheDir, `${Date.now()}_thumb.jpg`);
+                fs.writeFileSync(thumbPath, Buffer.from(thumbRes.data));
+            } catch (thumbError) {
+                console.log("Thumbnail download failed:", thumbError.message);
+            }
+        }
+
+        // Send thumbnail with info
+        if (thumbPath) {
+            await api.sendMessage(
+                {
+                    body: `🎵 ${title}\n📺 ${author}`,
+                    attachment: fs.createReadStream(thumbPath)
+                },
+                event.threadID
+            );
+        }
+
+        // Send audio file
+        await api.sendMessage(
+            {
+                body: `🎵 Audio File`,
+                attachment: fs.createReadStream(audioPath)
+            },
+            event.threadID
+        );
+
+        setTimeout(() => {
+            try {
+                if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+                if (thumbPath && fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+                api.unsendMessage(searchMsg.messageID);
+            } catch (err) {
+                console.log("Cleanup error:", err);
+            }
+        }, 10000);
+
+    } catch (error) {
+        console.error("Music command error:", error.message);
+        api.unsendMessage(searchMsg.messageID);
+        return api.sendMessage("❌ An error occurred while processing your request", event.threadID, event.messageID);
     }
-
-    let videoID;
-
-    if (input.includes("youtu")) {
-      videoID = getVideoID(input);
-      if (!videoID) throw new Error("Invalid URL");
-    } else {
-      const res = await yts(input);
-      videoID = res.videos[0]?.videoId;
-      if (!videoID) throw new Error("No result");
-    }
-
-    const { data } = await axios.get(
-      `${global.apis.diptoApi}/ytDl3?link=${videoID}&format=mp3`
-    );
-
-    const short = (
-      await axios.get(
-        `https://tinyurl.com/api-create.php?url=${encodeURIComponent(
-          data.downloadLink
-        )}`
-      )
-    ).data;
-
-    api.unsendMessage(loading.messageID);
-
-    return api.sendMessage(
-      {
-        body: `🎵 ${data.title}\n🔗 ${short}`,
-        attachment: await getStreamFromURL(
-          data.downloadLink,
-          `${data.title}.mp3`
-        )
-      },
-      event.threadID,
-      event.messageID
-    );
-
-  } catch (err) {
-    console.error(err);
-    return api.sendMessage(
-      "⚠️ Server busy ya API down 😢",
-      event.threadID,
-      event.messageID
-    );
-  }
 };
