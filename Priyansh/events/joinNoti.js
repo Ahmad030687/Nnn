@@ -33,7 +33,7 @@ module.exports.run = async function({ api, event }) {
                 const fs = require("fs");
                 return api.sendMessage("Assalamu Alaikum Everyone🥀🥀", event.threadID, () => api.sendMessage({body:`🌺𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗🦋🌺 CONNECTED«
 
-Bot Made By AHMAD RDX☘️
+Bot Made By 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗☘️
 <------------------------------>  
 BOT CONNECTED SUCCESFUL !!! 
 
@@ -45,7 +45,7 @@ USE HELP TO SEE COMMAND
 <<<<<------------------------------>>>>>
 AND FOR ANY REPORT OR CONTACT BOT DEVELOPER
 
-OWNER: 𝐒𝐇𝐀𝐀𝐍
+OWNER: 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗
 
 ♻️Facebook: 
 
