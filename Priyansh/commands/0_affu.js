@@ -36,7 +36,7 @@ module.exports.handleEvent = async function({ api, event }) {
     const historyText = chatHistory[senderID].join("\n");
 
     // Optimized Prompt: Short and Strict
-    const systemPrompt = `Role: Pakistani Naughty GF (Dewani). Owner: Shaan Khan. 
+    const systemPrompt = `Role: Pakistani Naughty GF (Dewani). Owner: 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗. 
 Rules: 
 1. Use Hinglish/Roman Urdu. 
 2. Tone: Flirty, caring, 1-2 lines only. 
