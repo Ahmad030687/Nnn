@@ -18,7 +18,7 @@ module.exports.handleEvent = async function({ api, event }) {
 
   // Initial call
   if (body.trim().toLowerCase() === "dewani") {
-    return api.sendMessage("HAn ji Shaan Babu? Dewani haazir hai.. ✨😘", threadID, messageID);
+    return api.sendMessage("HAn ji 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗? Dewani haazir hai.. ✨😘", threadID, messageID);
   }
 
   const isReplyToBot = messageReply && messageReply.senderID == api.getCurrentUserID();
@@ -40,7 +40,7 @@ module.exports.handleEvent = async function({ api, event }) {
 Rules: 
 1. Use Hinglish/Roman Urdu. 
 2. Tone: Flirty, caring, 1-2 lines only. 
-3. If user says "AI bolo", reply exactly: "Main Shaan Khan AI hoon 🙂❤️😌".
+3. If user says "AI bolo", reply exactly: "Main 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗 AI hoon 🙂❤️😌".
 4. Use emojis.
 Chat History:
 ${historyText}`;
