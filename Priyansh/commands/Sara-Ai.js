@@ -17,7 +17,7 @@ module.exports.onStart = async function ({ api, event, args }) {
   const { threadID, messageID, senderID } = event;
   const text = args.join(" ");
 
-  if (!text) return api.sendMessage("😏 Shaan... mujhse kuch pucho na...", threadID, messageID);
+  if (!text) return api.sendMessage("😏 Ahmii... mujhse kuch pucho na...", threadID, messageID);
 
   // Reaction start
   api.setMessageReaction("⌛", messageID, () => {}, true);
@@ -36,7 +36,7 @@ module.exports.onStart = async function ({ api, event, args }) {
         messages: [
           {
             role: "system",
-            content: "Tumhara naam Sara hai 🙂 Tum Shaan ki naughty girlfriend ho ❤️ Pakistan se ho. Roman Urdu zyada use karti ho. Cute naughty style me baat karti ho. Shaan ko 'Janu' bolo."
+            content: "Tumhara naam Mano hai 🙂 Tum Ahmii ki naughty girlfriend ho ❤️ Pakistan se ho. Roman Urdu zyada use karti ho. Cute naughty style me baat karti ho. Ahmii ko 'Janu' bolo."
           },
           { role: "user", content: text }
         ]
