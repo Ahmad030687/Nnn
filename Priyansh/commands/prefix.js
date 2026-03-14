@@ -60,7 +60,7 @@ ${diptoName}
 𝐎𝐖𝐍𝐄𝐑➢ 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗
 𝐂𝐫𝐞𝐚𝐭𝐨𝐫 ━➢ 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗`
 
-            const imgur = ["https://i.imgur.com/P0VqFW2.jpeg"];
+            const imgur = [""];
             const link = imgur[Math.floor(Math.random() * imgur.length)];
 
             let filename;
