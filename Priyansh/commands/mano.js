@@ -7,10 +7,10 @@ const path = __dirname + "/cache/manoStatus.json";
 // ================= CONFIG =================
 module.exports.config = {
   name: "mano",
-  version: "12.3.0",
+  version: "12.5.0",
   hasPermssion: 0,
   credits: "AHMAD RDX",
-  description: "Sensible Mano AI with On/Off Switch - Fixed Version",
+  description: "Mano AI with Alexa Style On/Off Logic",
   commandCategory: "AI",
   usages: "mano [on/off/text]",
   cooldowns: 3
@@ -18,26 +18,20 @@ module.exports.config = {
 
 const OWNER_UID = ["61577631137537", "61586449536740"]; 
 
-// ================= AUTO REPLY LOGIC (Without Prefix) =================
+// ================= AUTO REPLY LOGIC =================
 module.exports.handleEvent = async function ({ api, event }) {
   const { body, type, messageReply, threadID, messageID, senderID } = event;
   if (!body || senderID == api.getCurrentUserID()) return;
 
-  // Load current status safely
+  // Load current status
   let status = {};
-  if (fs.existsSync(path)) {
-    try {
-      status = JSON.parse(fs.readFileSync(path));
-    } catch (e) {
-      status = {};
-    }
-  }
+  if (fs.existsSync(path)) status = JSON.parse(fs.readFileSync(path));
   
-  // ✅ FIX 1: Ab default OFF rahega (Jab tak exactly 'true' na ho)
-  const isEnabled = status[threadID] === true; 
+  // Alexa pattern: Default is ON ( !== false )
+  const isEnabled = status[threadID] !== false; 
   const input = body.toLowerCase().trim();
 
-  // Switch Logic (Jab koi bina dot ke 'mano on' ya 'mano off' likhe)
+  // Switch Logic (No Prefix)
   if (input === "mano on") {
     status[threadID] = true;
     fs.writeFileSync(path, JSON.stringify(status, null, 2));
@@ -52,7 +46,10 @@ module.exports.handleEvent = async function ({ api, event }) {
   // Check if Bot is enabled for this thread
   if (!isEnabled) return;
 
-  // Trigger Logic (Mano)
+  // Agar message command prefix se shuru ho raha hai (e.g .uns) toh reply na kare
+  const prefixes = [".", "/", "!", "?", "#"];
+  if (prefixes.some(p => input.startsWith(p)) && !input.startsWith("mano")) return;
+
   if (
     input.startsWith("mano") || 
     (type === "message_reply" && messageReply && messageReply.senderID === api.getCurrentUserID())
@@ -64,12 +61,11 @@ module.exports.handleEvent = async function ({ api, event }) {
   }
 };
 
-// ================= COMMAND RUN (With Prefix .mano) =================
+// ================= COMMAND RUN =================
 module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID } = event;
   const content = args.join(" ").toLowerCase();
 
-  // Status load karein
   let status = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
 
   if (content === "on") {
@@ -86,10 +82,8 @@ module.exports.run = async function ({ api, event, args }) {
 
   if (!content) return api.sendMessage("Kya hua? Kuch bolo na... 😏\nUsage: mano [on/off/text]", threadID, messageID);
 
-  // ✅ FIX 2: Agar Mano OFF hai, aur kisi ne command lagayi hai toh usay rok do
-  if (status[threadID] !== true) {
-    return api.sendMessage("⚠️ Mano abhi OFF hai. Pehle '.mano on' likho phir baat karegi!", threadID, messageID);
-  }
+  // If status is OFF, don't run chat function
+  if (status[threadID] === false) return api.sendMessage("Mano abhi OFF hai jani!", threadID, messageID);
 
   return chatWithMano(api, event, args.join(" "));
 };
@@ -100,8 +94,8 @@ async function chatWithMano(api, event, query) {
   const isOwner = OWNER_UID.includes(event.senderID.toString());
 
   const systemPrompt = isOwner
-    ? "Tumhara naam Mano hai. Tum Karachi ki romantic larki ho. Tumhara Owner AHMAD RDX hai. Agar koi bot kaki Mano Kahe ose flirty ho kr pyar se baat kro. Tum sirf Ahmii se mohabbat karti ho. Usay hamesha 'Janu', 'Jaan', 'baby', 'Jani' bulao. Kabhi 'Bhai' mat kehna. Jawab 2-3 lines mein ho lamba na ho aur bohot loving/flirty do."
-    : "Tumhara naam Mano hai. Tum thodi nakhre wali aur attitude wali larki ho. Tumhara owner AHMAD RDX hai. Agar koi bot kaki ya kaky kahe os se pyar se flirty ho kr baat kro. Sabko 'Dost' ya 'Yar' bulao. Jawab 2-3 lines ka ho, magar thoda rude aur funny touch mein.";
+    ? "Tumhara naam Mano hai. Tum Karachi ki romantic larki ho. Tumhara Owner AHMAD RDX hai. Usay hamesha 'Janu', 'Jaan', 'baby', 'Jani' bulao. Kabhi 'Bhai' mat kehna. Jawab 2-3 lines mein ho aur bohot loving/flirty do."
+    : "Tumhara naam Mano hai. Tum thodi nakhre wali aur attitude wali larki ho. Tumhara owner AHMAD RDX hai. Sabko 'Dost' ya 'Yar' bulao. Jawab 2-3 lines ka ho, magar thoda rude aur funny touch mein.";
 
   try {
     api.setMessageReaction("⏳", event.messageID, () => {}, true);
@@ -131,6 +125,6 @@ async function chatWithMano(api, event, query) {
 
   } catch (error) {
     api.setMessageReaction("⚠️", event.messageID, () => {}, true);
-    return api.sendMessage("Ahmad bhai, Mano ka net chala gaya hai, dobara try karein. 😒", event.threadID, event.messageID);
+    return api.sendMessage("Mano thak gayi hai, thodi der baad try karna. 😒", event.threadID, event.messageID);
   }
 }
