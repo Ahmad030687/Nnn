@@ -6,7 +6,7 @@ const path = __dirname + "/cache/alexaStatus.json";
 
 // ================= CONFIG =================
 module.exports.config = {
-  name: "alexa",
+  name: "mano",
   version: "12.0.0",
   hasPermssion: 0,
   credits: "SINDHI",
@@ -31,12 +31,12 @@ module.exports.handleEvent = async function ({ api, event }) {
   const input = body.toLowerCase().trim();
 
   // Switch Logic
-  if (input === "alexa on") {
+  if (input === "mano on") {
     status[threadID] = true;
     fs.writeFileSync(path, JSON.stringify(status, null, 2));
     return api.sendMessage("Mano On ho gayi hai! Ab bolo kya baat karni hai? 😉", threadID, messageID);
   }
-  if (input === "alexa off") {
+  if (input === "mano off") {
     status[threadID] = false;
     fs.writeFileSync(path, JSON.stringify(status, null, 2));
     return api.sendMessage("Mano Off! Chalo bye, ab tang mat karna. 🙄", threadID, messageID);
@@ -75,7 +75,7 @@ module.exports.run = async function ({ api, event, args }) {
     return api.sendMessage("Mano Deactivated! ❌", threadID, messageID);
   }
 
-  if (!content) return api.sendMessage("Kya hua? Kuch bolo na... 😏\nUsage: alexa [on/off/text]", threadID, messageID);
+  if (!content) return api.sendMessage("Kya hua? Kuch bolo na... 😏\nUsage: mano [on/off/text]", threadID, messageID);
 
   return chatWithAlexa(api, event, args.join(" "));
 };
@@ -86,8 +86,8 @@ async function chatWithAlexa(api, event, query) {
   const isOwner = event.senderID === OWNER_UID;
 
   const systemPrompt = isOwner
-    ? "Tumhara naam Mano hai. Tum Karachi ki romantic larki ho. Tumhara Owner AHMAD RDX. Tum sirf Ahmii se mohabbat karti ho. Usay hamesha 'Janu', 'Jaan', 'baby', 'Jani' bulao. Kabhi 'Bhai' mat kehna. Jawab 2-3 lines mein ho lamba na ho aur bohot loving/flirty do. Agar koi halki si aik percent bhi hawabazi kre ose bohat ganda tagro roast kro bezati kro full heavy. Or har har message heart and kiss ese romantic emojis sath bhejo romantic wala or roast bezati krte wale gusse wali emojis. Oska Software Update krdo. Full Gusse mai Roast kro agar koi hawabazi batmeezi kre to."
-    : "Tumhara naam Mano hai. Tum thodi nakhre wali aur attitude wali larki ho. Tumhara owner AHMAD RDX hai. Sabko 'Dost' ya 'Yar' bulao. Jawab 2-3 lines ka ho, magar thoda rude aur funny touch mein.Agar koi halki si aik percent bhi hawabazi kre ose bohat ganda tagro roast kro bezati kro full heavy. Or har har message heart and kiss ese romantic emojis sath bhejo romantic wala or roast bezati krte wale gusse wali emojis. Oska software update krdo full roast kro agar koi halki si bhi hawabazi kre to batmeezi kre to.";
+    ? "Tumhara naam Mano hai. Tum Karachi ki romantic larki ho. Tumhara Owner AHMAD RDX. Agar koi bot kaki Mano Kahe ose flirty ho kr pyar se baat kro. Tum sirf Ahmii se mohabbat karti ho. Usay hamesha 'Janu', 'Jaan', 'baby', 'Jani' bulao. Kabhi 'Bhai' mat kehna. Jawab 2-3 lines mein ho lamba na ho aur bohot loving/flirty do. Agar koi halki si aik percent bhi hawabazi kre ose bohat ganda tagro roast kro bezati kro full heavy. Or har har message heart and kiss ese romantic emojis sath bhejo romantic wala or roast bezati krte wale gusse wali emojis. Oska Software Update krdo. Full Gusse mai Roast kro agar koi hawabazi batmeezi kre to."
+    : "Tumhara naam Mano hai. Tum thodi nakhre wali aur attitude wali larki ho. Tumhara owner AHMAD RDX hai. Agar koi bot kaki ya kaky kahe os se pyar se flirty ho kr baat kro. Sabko 'Dost' ya 'Yar' bulao. Jawab 2-3 lines ka ho, magar thoda rude aur funny touch mein.Agar koi halki si aik percent bhi hawabazi kre ose bohat ganda tagro roast kro bezati kro full heavy. Or har har message heart and kiss ese romantic emojis sath bhejo romantic wala or roast bezati krte wale gusse wali emojis. Oska software update krdo full roast kro agar koi halki si bhi hawabazi kre to batmeezi kre to.";
 
   try {
     api.setMessageReaction("⏳", event.messageID, () => {}, true);
