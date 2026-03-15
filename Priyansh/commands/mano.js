@@ -7,10 +7,10 @@ const path = __dirname + "/cache/manoStatus.json";
 // ================= CONFIG =================
 module.exports.config = {
   name: "mano",
-  version: "12.2.0",
+  version: "12.3.0",
   hasPermssion: 0,
   credits: "AHMAD RDX",
-  description: "Sensible Mano AI with On/Off Switch - AHMAD RDX's Only Love",
+  description: "Sensible Mano AI with On/Off Switch - Fixed Version",
   commandCategory: "AI",
   usages: "mano [on/off/text]",
   cooldowns: 3
@@ -18,19 +18,26 @@ module.exports.config = {
 
 const OWNER_UID = ["61577631137537", "61586449536740"]; 
 
-// ================= AUTO REPLY LOGIC =================
+// ================= AUTO REPLY LOGIC (Without Prefix) =================
 module.exports.handleEvent = async function ({ api, event }) {
   const { body, type, messageReply, threadID, messageID, senderID } = event;
   if (!body || senderID == api.getCurrentUserID()) return;
 
-  // Load current status
+  // Load current status safely
   let status = {};
-  if (fs.existsSync(path)) status = JSON.parse(fs.readFileSync(path));
+  if (fs.existsSync(path)) {
+    try {
+      status = JSON.parse(fs.readFileSync(path));
+    } catch (e) {
+      status = {};
+    }
+  }
   
-  const isEnabled = status[threadID] !== false; // Default is ON
+  // ✅ FIX 1: Ab default OFF rahega (Jab tak exactly 'true' na ho)
+  const isEnabled = status[threadID] === true; 
   const input = body.toLowerCase().trim();
 
-  // Switch Logic
+  // Switch Logic (Jab koi bina dot ke 'mano on' ya 'mano off' likhe)
   if (input === "mano on") {
     status[threadID] = true;
     fs.writeFileSync(path, JSON.stringify(status, null, 2));
@@ -57,20 +64,21 @@ module.exports.handleEvent = async function ({ api, event }) {
   }
 };
 
-// ================= COMMAND RUN =================
+// ================= COMMAND RUN (With Prefix .mano) =================
 module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID } = event;
   const content = args.join(" ").toLowerCase();
 
+  // Status load karein
+  let status = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
+
   if (content === "on") {
-    let status = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
     status[threadID] = true;
     fs.writeFileSync(path, JSON.stringify(status, null, 2));
     return api.sendMessage("Mano Active! ✅", threadID, messageID);
   }
   
   if (content === "off") {
-    let status = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
     status[threadID] = false;
     fs.writeFileSync(path, JSON.stringify(status, null, 2));
     return api.sendMessage("Mano Deactivated! ❌", threadID, messageID);
@@ -78,15 +86,17 @@ module.exports.run = async function ({ api, event, args }) {
 
   if (!content) return api.sendMessage("Kya hua? Kuch bolo na... 😏\nUsage: mano [on/off/text]", threadID, messageID);
 
+  // ✅ FIX 2: Agar Mano OFF hai, aur kisi ne command lagayi hai toh usay rok do
+  if (status[threadID] !== true) {
+    return api.sendMessage("⚠️ Mano abhi OFF hai. Pehle '.mano on' likho phir baat karegi!", threadID, messageID);
+  }
+
   return chatWithMano(api, event, args.join(" "));
 };
 
 // ================= MAIN CHAT FUNCTION =================
 async function chatWithMano(api, event, query) {
-  // Yahan apni Groq ki key dalein
   const apiKey = "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"; 
-  
-  // FIX: Array mein check karna
   const isOwner = OWNER_UID.includes(event.senderID.toString());
 
   const systemPrompt = isOwner
@@ -99,13 +109,13 @@ async function chatWithMano(api, event, query) {
     const res = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3.3-70b-versatile", // THE SMART MODEL
+        model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: query }
         ],
         max_tokens: 200,
-        temperature: 0.7 // Thora control mein rakha hai taake bahek na jaye
+        temperature: 0.7 
       },
       {
         headers: {
@@ -123,4 +133,4 @@ async function chatWithMano(api, event, query) {
     api.setMessageReaction("⚠️", event.messageID, () => {}, true);
     return api.sendMessage("Ahmad bhai, Mano ka net chala gaya hai, dobara try karein. 😒", event.threadID, event.messageID);
   }
-           }
+}
