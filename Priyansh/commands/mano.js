@@ -2,17 +2,21 @@ const axios = require("axios");
 const fs = require("fs");
 
 // File path for storing status
-const path = __dirname + "/cache/alexaStatus.json";
+const path = __dirname + "/cache/manoStatus.json";
+
+// ================= CEREBRAS API CONFIG =================
+const CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
+const API_KEYS = ['csk-pyd4m69tmtfkjpcjjdwdyk9fh86kycjpphey8d5wj9p8fpth'];
 
 // ================= CONFIG =================
 module.exports.config = {
   name: "mano",
-  version: "12.0.0",
+  version: "12.1.0",
   hasPermssion: 0,
-  credits: "SINDHI",
-  description: "Alexa AI with On/Off Switch - Attaullah's Only Love",
+  credits: "AHMAD RDX",
+  description: "Mano AI with On/Off Switch - AHMAD RDX's Only Love",
   commandCategory: "AI",
-  usages: "alexa [on/off/text]",
+  usages: "mano [on/off/text]",
   cooldowns: 3
 };
 
@@ -45,14 +49,15 @@ module.exports.handleEvent = async function ({ api, event }) {
   // Check if Bot is enabled for this thread
   if (!isEnabled) return;
 
+  // Trigger Logic (Mano ke naam par ya reply karne par)
   if (
-    input.startsWith("alexa") || 
+    input.startsWith("mano") || 
     (type === "message_reply" && messageReply && messageReply.senderID === api.getCurrentUserID())
   ) {
-    const query = input.startsWith("alexa") ? body.replace(/alexa/i, "").trim() : body;
-    if (!query && input === "alexa") return api.sendMessage("Jee Jaan? Kuch bolo to sahi... 😘", threadID, messageID);
+    const query = input.startsWith("mano") ? body.replace(/mano/i, "").trim() : body;
+    if (!query && input === "mano") return api.sendMessage("Jee Jaan? Kuch bolo to sahi... 😘", threadID, messageID);
     
-    return chatWithAlexa(api, event, query || "hi");
+    return chatWithMano(api, event, query || "hi");
   }
 };
 
@@ -77,46 +82,55 @@ module.exports.run = async function ({ api, event, args }) {
 
   if (!content) return api.sendMessage("Kya hua? Kuch bolo na... 😏\nUsage: mano [on/off/text]", threadID, messageID);
 
-  return chatWithAlexa(api, event, args.join(" "));
+  return chatWithMano(api, event, args.join(" "));
 };
 
 // ================= MAIN CHAT FUNCTION =================
-async function chatWithAlexa(api, event, query) {
-  const apiKey = "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"; 
-  const isOwner = event.senderID === OWNER_UID;
+async function chatWithMano(api, event, query) {
+  // Random API key select karega (agar mustaqbil mein aur keys daalein)
+  const apiKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)]; 
+  
+  // FIX: Array mein se check karne ke liye .includes() use hota hai
+  const isOwner = OWNER_UID.includes(event.senderID.toString());
 
   const systemPrompt = isOwner
-    ? "Tumhara naam Mano hai. Tum Karachi ki romantic larki ho. Tumhara Owner AHMAD RDX. Agar koi bot kaki Mano Kahe ose flirty ho kr pyar se baat kro. Tum sirf Ahmii se mohabbat karti ho. Usay hamesha 'Janu', 'Jaan', 'baby', 'Jani' bulao. Kabhi 'Bhai' mat kehna. Jawab 2-3 lines mein ho lamba na ho aur bohot loving/flirty do. Agar koi halki si aik percent bhi hawabazi kre ose bohat ganda tagro roast kro bezati kro full heavy. Or har har message heart and kiss ese romantic emojis sath bhejo romantic wala or roast bezati krte wale gusse wali emojis. Oska Software Update krdo. Full Gusse mai Roast kro agar koi hawabazi batmeezi kre to."
-    : "Tumhara naam Mano hai. Tum thodi nakhre wali aur attitude wali larki ho. Tumhara owner AHMAD RDX hai. Agar koi bot kaki ya kaky kahe os se pyar se flirty ho kr baat kro. Sabko 'Dost' ya 'Yar' bulao. Jawab 2-3 lines ka ho, magar thoda rude aur funny touch mein.Agar koi halki si aik percent bhi hawabazi kre ose bohat ganda tagro roast kro bezati kro full heavy. Or har har message heart and kiss ese romantic emojis sath bhejo romantic wala or roast bezati krte wale gusse wali emojis. Oska software update krdo full roast kro agar koi halki si bhi hawabazi kre to batmeezi kre to.";
+    ? "Tumhara naam Mano hai. Tum Karachi ki romantic larki ho. Tumhara Owner AHMAD RDX hai. Agar koi bot kaki Mano Kahe ose flirty ho kr pyar se baat kro. Tum sirf Ahmii se mohabbat karti ho. Usay hamesha 'Janu', 'Jaan', 'baby', 'Jani' bulao. Kabhi 'Bhai' mat kehna. Jawab 2-3 lines mein ho lamba na ho aur bohot loving/flirty do."
+    : "Tumhara naam Mano hai. Tum thodi nakhre wali aur attitude wali larki ho. Tumhara owner AHMAD RDX hai. Agar koi bot kaki ya kaky kahe os se pyar se flirty ho kr baat kro. Sabko 'Dost' ya 'Yar' bulao. Jawab 2-3 lines ka ho, magar thoda rude aur funny touch mein.";
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: query }
+  ];
 
   try {
     api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
-    const res = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
+    const response = await axios.post(
+      CEREBRAS_API_URL,
       {
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: query }
-        ],
-        max_tokens: 150,
-        temperature: 0.8
+        messages: messages,
+        model: "llama3.1-8b",
+        max_completion_tokens: 150,
+        temperature: 0.9,
+        top_p: 0.95,
+        stream: false
       },
       {
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json"
-        }
+        },
+        timeout: 15000
       }
     );
 
-    const reply = res.data.choices[0].message.content;
+    const reply = response.data.choices[0].message.content;
     api.setMessageReaction(isOwner ? "❤️" : "😎", event.messageID, () => {}, false);
     return api.sendMessage(reply, event.threadID, event.messageID);
 
   } catch (error) {
+    console.error("Cerebras API Error:", error.response ? error.response.data : error.message);
     api.setMessageReaction("⚠️", event.messageID, () => {}, true);
     return api.sendMessage("Net ka masla hai ya API limit khatam, dobara koshish karo yar. 😒", event.threadID, event.messageID);
   }
-      }
+    }
