@@ -1,6 +1,5 @@
 const { spawn } = require("child_process");
 const axios = require("axios");
-const logger = require("./utils/log");
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -8,88 +7,86 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 5000;
 
-///////////////////////////////////////////////////////////
-//========= Create website for dashboard/uptime =========//
-///////////////////////////////////////////////////////////
-
-app.get('/', function (req, res) {
-    res.sendFile(path.join(__dirname, '/index.html'));
+// Dashboard setup (Uptime ke liye)
+app.get('/', (req, res) => {
+    res.send('Mano Bot is running and protected by Bot B!');
 });
 
-app.listen(port, '0.0.0.0', () => {
-    logger(`Server is running on port ${port}...`, "[ Starting ]");
-}).on('error', (err) => {
-    logger(`Server error: ${err.message}`, "[ Error ]");
+app.listen(port, () => {
+    console.log(`[ SERVER ] Running on port ${port}`);
 });
 
 ///////////////////////////////////////////////////////////
-//========= 🛡️ SELF-HEALING ERROR REPORTER =========//
+//========= 🛡️ DYNAMIC SELF-HEALING SYSTEM =========//
 ///////////////////////////////////////////////////////////
 
-// NOTE: Jab aap Bot B Render par deploy kar lein, toh niche wala URL lazmi badlein.
-const BOT_B_URL = "https://auto-healer.onrender.com"; 
+// Aapka Bot B ka URL (Fixer Link)
+const BOT_B_URL = "https://auto-fixer-bot-b.onrender.com/fix"; 
 
 async function reportErrorToFixer(err) {
     try {
-        // Hum check karte hain ke kya mano.js file mojud hai
-        const filePath = "./modules/commands/mano.js";
-        if (!fs.existsSync(filePath)) return;
+        // Error stack se crash hone wali file ka naam nikalna
+        const stackLines = err.stack.split('\n');
+        const callerLine = stackLines.find(line => line.includes('modules/commands'));
+        
+        let targetFile = "";
+        if (callerLine) {
+            const match = callerLine.match(/(modules\/commands\/.*?\.js)/);
+            if (match) targetFile = match[1];
+        }
 
-        const manoCode = fs.readFileSync(filePath, "utf8");
+        // Agar file nahi mili toh default jail.js (Test ke liye)
+        if (!targetFile) targetFile = "modules/commands/jail.js";
+
+        const filePath = path.join(__dirname, targetFile);
         
-        await axios.post(BOT_B_URL, {
-            error: err.message,
-            stack: err.stack,
-            filename: "modules/commands/mano.js",
-            code: manoCode
-        });
-        
-        logger("Crash detected! Error report sent to Bot B for auto-fixing...", "[ Self-Heal ]");
+        if (fs.existsSync(filePath)) {
+            const codeContent = fs.readFileSync(filePath, "utf8");
+            
+            console.log(`[ SELF-HEAL ] Detected crash in: ${targetFile}`);
+            console.log(`[ SELF-HEAL ] Sending SOS to Bot B...`);
+
+            await axios.post(BOT_B_URL, {
+                error: err.message,
+                stack: err.stack,
+                filename: targetFile,
+                code: codeContent
+            });
+            
+            console.log(`[ SUCCESS ] Report sent! Bot B is fixing it now.`);
+        }
     } catch (e) {
-        logger("Bot B is offline or URL is wrong. Could not send report.", "[ Error ]");
+        console.log("[ ERROR ] Bot B tak signal nahi pahunch saka. URL ya Network check karein.");
     }
 }
 
-// Global error listener - Bot ko marnay se pehle report karne deta hai
+// Ye listener bot ke har "Janaza" (Crash) ko monitor karega
 process.on('uncaughtException', async (err) => {
-    logger(`CRITICAL ERROR: ${err.message}`, "[ Crash ]");
+    console.error(`[ CRASH ] Critical Error: ${err.message}`);
     await reportErrorToFixer(err);
-    // 5 second ka wait taake report chali jaye, phir process exit karein
+    // 5 seconds wait taake signal chala jaye, phir bot band ho
     setTimeout(() => { process.exit(1); }, 5000);
 });
 
 /////////////////////////////////////////////////////////
-//========= Create start bot and make it loop =========//
+//========= BOT PROCESS MANAGEMENT =========//
 /////////////////////////////////////////////////////////
 
-global.countRestart = global.countRestart || 0;
-
-function startBot(message) {
-    if (message) logger(message, "[ Starting ]");
-
-    // "Shaan-Khan-K.js" aapki main bot file hai
-    const child = spawn("node", ["--trace-warnings", "--async-stack-traces", "Shaan-Khan-K.js"], {
+function startBot() {
+    // Child process jo aapke bot (Shaan-Khan-K.js) ko chalayega
+    const child = spawn("node", ["--trace-warnings", "Shaan-Khan-K.js"], {
         cwd: __dirname,
         stdio: "inherit",
         shell: true
     });
 
     child.on("close", (codeExit) => {
-        if (codeExit !== 0 && global.countRestart < 10) { // Restarts limit thori barha di
-            global.countRestart += 1;
-            logger(`Bot exited with code ${codeExit}. Restarting... (${global.countRestart}/10)`, "[ Restarting ]");
-            
-            // Crash par bhi report bhej sakte hain
-            startBot();
-        } else {
-            logger(`Bot stopped permanently. Manual check required.`, "[ Stopped ]");
+        if (codeExit !== 0) {
+            console.log(`[ RESTART ] Bot crashed. Restarting in 10s...`);
+            // Bot B ko code theek karne ka waqt dene ke liye 10 sec delay
+            setTimeout(startBot, 10000);
         }
     });
+}
 
-    child.on("error", (error) => {
-        logger(`An error occurred in child process: ${error.message}`, "[ Error ]");
-    });
-};
-
-// Start the bot
 startBot();
