@@ -1,5 +1,5 @@
 module.exports.config = {
-    name: "jail",
+    name: "band",
     version: "1.1.0",
     hasPermssion: 0,
     credits: "Ahmad",
