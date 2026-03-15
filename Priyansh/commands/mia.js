@@ -1,14 +1,14 @@
-const axios = require("axios");
+const Jimp = require("jimp");
 const fs = require("fs-extra");
 const path = require("path");
 
 module.exports = {
   config: {
     name: "mia",
-    version: "3.0.0",
+    version: "4.0.0",
     hasPermssion: 0,
     credits: "AHMAD RDX",
-    description: "Mia Khalifa ke provide kiye gaye template image tweet banayein",
+    description: "Mia Khalifa ke template par text likh kar photo bhejta hai",
     commandCategory: "fun",
     usages: "[mention/reply] [message]",
     cooldowns: 5
@@ -16,8 +16,6 @@ module.exports = {
 
   run: async function ({ api, event, args }) {
     const { threadID, messageID, messageReply, mentions } = event;
-    const cacheDir = path.join(__dirname, "cache");
-    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 
     let targetID, targetName, userMsg;
 
@@ -29,44 +27,50 @@ module.exports = {
       targetID = Object.keys(mentions)[0];
       userMsg = args.join(" ").replace(/@[^ ]+/g, "").trim();
     } else {
-      return api.sendMessage("⚠️ Oye! Pehle kisi ko tag karo ya reply karo aur message likho!", threadID, messageID);
+      return api.sendMessage("⚠️ Oye! Kisi ko tag karo ya reply karo aur message likho!", threadID, messageID);
     }
 
-    if (!userMsg) return api.sendMessage("❌ Saath mein koi message toh likho!", threadID, messageID);
+    if (!userMsg) return api.sendMessage("❌ Saath mein message toh likho ke Mia kya kahe!", threadID, messageID);
 
     try {
       api.setMessageReaction("📸", messageID, () => {}, true);
 
       const userInfo = await api.getUserInfo(targetID);
       targetName = userInfo[targetID].name;
-
-      // Tagged user's username formatted for the tweet text
-      const targetTag = `@${targetName.replace(/\s/g, '').toLowerCase()}`;
-      // Full tweet text to overlay
-      const tweetTextRaw = `${targetTag} ${userMsg}`;
-      const tweetText = encodeURIComponent(tweetTextRaw);
-
-      // --- CONCEPTUAL API CALL USING THE PROVIDE TEMPLATE ---
-      // This part assumes a third-party API exists that can overlay text on the specific template image you provided.
-      // Replace 'https://api.your-canvas-service.com' with the actual API endpoint if you have one.
-      // If no such service exists, this command will only be a concept.
-      const canvasUrl = `https://api.your-canvas-service.com/v1/image-generator/mia-tweet?template=https://i.postimg.cc/PfD9mVch/Picsart-26-03-15-15-49-25-496.jpg&text=${tweetText}&color=black&x=20&y=120`; 
-
-      const imagePath = path.join(cacheDir, `mia_tweet_exact_${messageID}.png`);
       
-      const response = await axios.get(canvasUrl, { responseType: "arraybuffer" });
-      fs.writeFileSync(imagePath, Buffer.from(response.data));
+      // Aapka diya hua template link
+      const templateURL = "https://i.postimg.cc/PfD9mVch/Picsart-26-03-15-15-49-25-496.jpg";
+      const cachePath = path.join(__dirname, "cache", `mia_${messageID}.png`);
 
+      // Tagged user ka handle
+      const targetTag = `@${targetName.replace(/\s/g, '').toLowerCase()}`;
+      const finalContent = `${targetTag} ${userMsg}`;
+
+      // 2. Image Processing Start
+      const image = await Jimp.read(templateURL);
+      // Font load karna (Jimp ke built-in fonts)
+      const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+
+      // Text ko image par chapna (X=45, Y=140 coordinates approx template ke mutabiq)
+      // 900 width di hai taake text wrap ho jaye
+      image.print(font, 45, 140, {
+        text: finalContent,
+        alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT
+      }, 900);
+
+      await image.writeAsync(cachePath);
+
+      // 3. Image bhejna
       return api.sendMessage({
-        body: `🔥 **Mia Khalifa ne is ganjy @${targetName} ko tweet kiya!**`,
-        attachment: fs.createReadStream(imagePath)
-      }, threadID, () => fs.unlinkSync(imagePath), messageID);
+        body: `🔥 **Mia Khalifa ne @${targetName} ki le li!**`,
+        attachment: fs.createReadStream(cachePath)
+      }, threadID, () => {
+        if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+      }, messageID);
 
     } catch (e) {
       console.error(e);
-      // Fallback message if image generation fails
-      return api.sendMessage("❌ Thori der baad try karein!", threadID, messageID);
+      return api.sendMessage("❌ Image edit karne mein masla aa raha hai!", threadID, messageID);
     }
   }
 };
-
