@@ -46,7 +46,7 @@ module.exports = {
       Tumhara roast itna heavy aur toxic hona chahiye ke parhne wala rone lag jaye. 
       Target ka naam hai: "${targetName}". 
       Is banday ki aisi taisi kardo, iski shakal, iski akal, aur iski auqat par bohot ganda tanz karo. 
-      Jawab sirf Urdu/Roman-Urdu mein ho aur 3-4 lines ka ho. Bohat gussay wali aur hasne wali emojis use karo. 
+      Jawab sirf Urdu/Roman-Urdu mein ho aur 2-3 lines Maximum 3 lines ka ho bas. Bohat gussay wali aur hasne wali emojis use karo. 
       Daryao nahi, full software update kardo iska!`;
 
       const apiKey = "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"; // Aapki Groq Key
