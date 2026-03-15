@@ -57,4 +57,3 @@ module.exports.run = async function({ api, event, args }) {
         throw new Error("AUTO_FIX_REQUIRED: " + err.message);
     }
 };
-
