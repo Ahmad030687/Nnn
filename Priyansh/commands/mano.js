@@ -27,7 +27,7 @@ module.exports.handleEvent = async function ({ api, event }) {
   let status = {};
   if (fs.existsSync(path)) status = JSON.parse(fs.readFileSync(path));
   
-  const isEnabled = status[threadID] == true; // Default is ON
+  const isEnabled = status[threadID] == !false; // Default is ON
   const input = body.toLowerCase().trim();
 
   // Switch Logic
