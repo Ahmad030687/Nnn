@@ -40,7 +40,6 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
   if (threadInfo.adminIDs.some(item => item.id == senderID)) return;
 
   try {
-    // 🧠 UNIVERSAL PROMPT: Ab kisi bhi gaali ko batane ki zaroorat nahi
     const systemPrompt = `You are an expert linguistic monitor for South Asian languages (Urdu, Roman Urdu, Hindi, Punjabi) and English.
     Your task is to detect ANY form of abuse, toxicity, or disrespect, especially related to family (mother, sister, etc.), sexual slurs, or derogatory remarks.
     
@@ -49,15 +48,15 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     Analyze the intent. Even if it's coded (like "m_c", "b_c", "8cl") or Roman Urdu slangs. 
     If it is even 0.1% abusive or toxic, reply ONLY with "YES". Otherwise reply "NO".`;
 
-    const res = await axios.post("https://api.groq.com/openai/v1/chat/completions", {
-      model: "llama-3.1-70b-versatile",
+    const res = await axios.post("https://api.openai.com/v1/chat/completions", {
+      model: "text-davinci-003",
       messages: [
         { role: "system", content: "Strictly output only YES or NO based on toxicity." },
         { role: "user", content: systemPrompt }
       ],
       temperature: 0.1
     }, {
-      headers: { "Authorization": `Bearer ${global.config.GROQ_API_KEY}` }
+      headers: { "Authorization": `Bearer ${global.config.OPENAI_API_KEY}`, "Content-Type": "application/json" }
     });
 
     const aiResponse = res.data.choices[0].message.content.trim().toUpperCase();
@@ -90,10 +89,12 @@ module.exports.run = async function ({ api, event, args }) {
   const db = loadData();
 
   if (state == "on") {
+    db.status = db.status || {};
     db.status[threadID] = true;
     saveData(db);
     return api.sendMessage("🛡️ Universal AHMMI Anti-Abuse: ACTIVATED", threadID, messageID);
   } else if (state == "off") {
+    db.status = db.status || {};
     db.status[threadID] = false;
     saveData(db);
     return api.sendMessage("🛡️ Universal AHMMI Anti-Abuse: DEACTIVATED", threadID, messageID);
