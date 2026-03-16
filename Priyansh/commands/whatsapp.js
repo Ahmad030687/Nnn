@@ -6,7 +6,7 @@ const path = require('path');
 module.exports.config = {
   name: "whatsapp",
   version: "16.0.0",
-  hasPermssion: 0,
+  hasPermission: 0,
   credits: "𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗",
   description: "Aesthetic WhatsApp Call - Anti-Text-Error Version",
   commandCategory: "Edit",
@@ -30,13 +30,12 @@ module.exports.run = async function({ api, event, Users }) {
 
   try {
     const getImg = async (url) => {
-      const res = await axios.get(url, { responseType: 'arraybuffer' });
-      return await Jimp.read(res.data);
+      return await Jimp.read(url);
     };
 
     const token = "6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
     const heartLink = "https://i.postimg.cc/rmmpGQqV/images-(3).png";
-    const stickerLink = "https://i.ibb.co/LzNf9yk/cute-cats.png"; 
+    const stickerLink = "https://i.imgur.com/4Xf5F3j.png";
 
     const [sAv, tAv, heart, sticker, fWhite32, fWhite16] = await Promise.all([
       getImg(`https://graph.facebook.com/${senderID}/picture?width=1000&height=1000&access_token=${token}`),
@@ -47,17 +46,15 @@ module.exports.run = async function({ api, event, Users }) {
       Jimp.loadFont(Jimp.FONT_SANS_16_WHITE)
     ]);
 
-    const base = new Jimp(1000, 900, '#f1f4f9'); 
+    const base = new Jimp(1000, 900, '#f1f4f9');
 
     const drawScreen = (name, time, avatar) => {
-      const screen = new Jimp(420, 780, '#232d36'); 
+      const screen = new Jimp(420, 780, '#232d36');
       
-      // DP: Badi photo like your sample
       avatar.resize(380, 420);
       screen.composite(avatar, 20, 140);
 
-      // Name & Status: Text handling to avoid ??? errors
-      const safeName = name.replace(/[^\x00-\x7F]/g, ""); // Standard English characters for stability
+      const safeName = name.replace(/[^\x00-\x7F]/g, "");
       const displayName = safeName || "Unknown";
       
       const nW = Jimp.measureText(fWhite32, displayName);
@@ -68,7 +65,6 @@ module.exports.run = async function({ api, event, Users }) {
       
       screen.print(fWhite16, (420 - Jimp.measureText(fWhite16, "🔒 End-to-end encrypted")) / 2, 20, "🔒 End-to-end encrypted");
 
-      // Permanent Dark Buttons Bar
       const btnBar = new Jimp(420, 100, '#1c262d');
       const drawBtn = (color, x, isRed = false) => {
         let btn = new Jimp(55, 55, color);
@@ -87,17 +83,15 @@ module.exports.run = async function({ api, event, Users }) {
       drawBtn('#374248', 30);
       drawBtn('#374248', 120);
       drawBtn('#374248', 210);
-      drawBtn('#f03d3d', 330, true); 
+      drawBtn('#f03d3d', 330, true);
 
       screen.composite(btnBar, 0, 680);
       return screen;
     };
 
-    // Results with Fixed Aesthetic placeholders
     base.composite(drawScreen("JaaN", "2:04:22", sAv), 30, 60);
     base.composite(drawScreen("My Life", "2:06:39", tAv), 550, 60);
 
-    // Decorations
     heart.resize(100, 100);
     base.composite(heart, 450, 400);
     
@@ -116,7 +110,7 @@ module.exports.run = async function({ api, event, Users }) {
       attachment: fs.createReadStream(cachePath)
     }, threadID, () => fs.unlinkSync(cachePath), messageID);
 
-    } catch (err) {
-    throw err; 
+  } catch (err) {
+    throw err;
   }
 };
