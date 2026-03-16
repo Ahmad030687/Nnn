@@ -1,47 +1,81 @@
+const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
+
 module.exports.config = {
-    name: "pinterest",
-    version: "1.0.0",
-    hasPermssion: 0,
-    credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
-    description: "Image search",
-    commandCategory: "Search",
-    usePrefix: false,
-    usages: "[Text]",
-    cooldowns: 0,
+  name: "pinterest",
+  version: "6.0.0",
+  hasPermssion: 0,
+  credits: "AHMAD RDX",
+  description: "Pinterest HD Downloader (Ultra Stealth Build)",
+  commandCategory: "Media",
+  usages: "[query] [quantity]",
+  cooldowns: 15 
 };
-module.exports.run = async function({ api, event, args }) {
-    const axios = require("axios");
-    const fs = require("fs-extra");
-    const keySearch = args.join(" ");
-    if(!keySearch.includes("-")) return api.sendMessage('Please enter in the format, example: pinterest Priyansh - 10 (it depends on you how many images you want to appear in the result)', event.threadID, event.messageID)
-    const keySearchs = keySearch.substr(0, keySearch.indexOf('-'))
-    const numberSearch = keySearch.split("-").pop() || 6
-    try {
-        const res = await axios.get(`https://api.pexels.com/v1/search?query=${encodeURIComponent(keySearchs)}&per_page=${numberSearch}`, {
-            headers: {
-                Authorization: '563492ad6f917000010000016b6d8d33a9a2b4e2f7d3a3e3e3e3e3e3e3e3e3'
-            }
-        });
-        const data = res.data.photos;
-        var num = 0;
-        var imgData = [];
-        for (var i = 0; i < parseInt(numberSearch); i++) {
-          if(data[i]) {
-            let path = __dirname + `/cache/${num+=1}.jpg`;
-            let getDown = (await axios.get(`${data[i].src.large}`, { responseType: 'arraybuffer' })).data;
-            fs.writeFileSync(path, Buffer.from(getDown));
-            imgData.push(fs.createReadStream(__dirname + `/cache/${num}.jpg`));
-          }
-        }
-        api.sendMessage({
-            attachment: imgData,
-            body: numberSearch + ' Search results for keyword: '+ keySearchs
-        }, event.threadID, event.messageID)
-        for (let ii = 1; ii <= num; ii++) {
-            fs.unlinkSync(__filename + `/cache/${ii}.jpg`)
-        }
-    } catch (e) {
-        console.log(e)
-        return api.sendMessage('Error', event.threadID, event.messageID)
+
+module.exports.run = async function ({ api, event, args }) {
+  const { threadID, messageID, senderID } = event;
+  let query = args.join(" ");
+  
+  if (!query) return api.sendMessage("💡 Please provide a search query.\nExample: .pinterest aesthetic 5", threadID, messageID);
+
+  const rdx_header = "🦅 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗 𝐏𝐈𝐍𝐓𝐄𝐑𝐄𝐒𝐓 🦅";
+  const line = "━━━━━━━━━━━━━━━━━━";
+
+  let quantity = 1;
+  const lastArg = args[args.length - 1];
+  if (!isNaN(lastArg) && args.length > 1) {
+    quantity = parseInt(lastArg);
+    query = args.slice(0, -1).join(" ");
+    if (quantity > 10) quantity = 10; 
+    if (quantity < 1) quantity = 1;
+  }
+
+  try {
+    const apiUrl = `https://pinterest-api.p.rapidapi.com/v1 searches query=${encodeURIComponent(query)}&per_page=${quantity}`;
+    const options = {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': 'YOUR_RAPID_API_KEY',
+        'X-RapidAPI-Host': 'pinterest-api.p.rapidapi.com'
+      }
+    };
+    const res = await axios.get(apiUrl, options);
+    const images = res.data.results; 
+    
+    if (!res.data.results || !images || images.length === 0) {
+      return api.sendMessage("❌ No results found for your query.", threadID, messageID);
     }
+
+    const attachments = [];
+    const cacheDir = path.join(__dirname, "cache");
+    if (!fs.existsSync(cacheDir)) fs.ensureDirSync(cacheDir);
+
+    for (let i = 0; i < images.length; i++) {
+      const imgUrl = images[i].image_url;
+      const imgPath = path.join(cacheDir, `rdx_pin_${Date.now()}_${senderID}_${i}.jpg`);
+      
+      try {
+        const imgRes = await axios.get(imgUrl, { responseType: "arraybuffer" });
+        fs.writeFileSync(imgPath, Buffer.from(imgRes.data));
+        attachments.push(fs.createReadStream(imgPath));
+      } catch (e) {
+        console.log(`[ PINTEREST ] Skip image error.`);
+      }
+    }
+
+    if (attachments.length === 0) return api.sendMessage("❌ Failed to download images.", threadID, messageID);
+
+    return api.sendMessage({
+      body: `${rdx_header}\n${line}\n✅ Results for: ${query}\n📸 Quantity: ${attachments.length}\n${line}`,
+      attachment: attachments
+    }, threadID, (err) => {
+      attachments.forEach(file => {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      });
+    }, messageID);
+
+  } catch (error) {
+    throw error; 
+  }
 };
