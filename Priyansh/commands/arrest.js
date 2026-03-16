@@ -23,24 +23,19 @@ module.exports.run = async function({ api, event, args }) {
     else if (Object.keys(mentions).length > 0) uid = Object.keys(mentions)[0];
     else uid = senderID;
 
-    const waitMsg = await api.sendMessage("⛓️ Jail ki salakhain laayi ja rahi hain... ⌛", threadID);
+    const waitMsg = await api.sendMessage(" Jail ki salakhain laayi ja rahi hain... ", threadID);
 
-    // Profile Picture URL
     const avatarUrl = `https://graph.facebook.com/${uid}/picture?width=1000&height=1000&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
     
-    // Jail Overlay Bars (Transparent PNG)
     const jailBarsUrl = "https://i.postimg.cc/9f7P7mKz/jail-bars.png";
 
-    // Get user image from avatarUrl
-    const userImg = await Jimp.read(avatarUrl);
+    const userImg = await Jimp.read(avatarUrl); 
 
     const jailBars = await Jimp.read(jailBarsUrl);
 
-    // Image ko bars ke size ke mutabiq resize karna
     userImg.resize(1000, 1000);
     jailBars.resize(1000, 1000);
 
-    // Bars ko DP ke upar lagana
     userImg.composite(jailBars, 0, 0);
 
     const cachePath = path.join(__dirname, "cache", `jail_${uid}.png`);
@@ -49,12 +44,11 @@ module.exports.run = async function({ api, event, args }) {
     api.unsendMessage(waitMsg.messageID);
 
     return api.sendMessage({
-      body: "🚨 Criminal Jail mein band ho gaya! 🚔",
+      body: " Criminal Jail mein band ho gaya! ",
       attachment: fs.createReadStream(cachePath)
     }, threadID, () => fs.unlinkSync(cachePath), messageID);
 
   } catch (err) {
-    // Ye Bot B ko signal bhejega
     throw err; 
   }
 };
