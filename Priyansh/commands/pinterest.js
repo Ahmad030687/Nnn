@@ -5,7 +5,7 @@ const path = require("path");
 module.exports.config = {
   name: "pinterest",
   version: "6.0.0",
-  hasPermssion: 0,
+  hasPermission: 0,
   credits: "AHMAD RDX",
   description: "Pinterest HD Downloader (Ultra Stealth Build)",
   commandCategory: "Media",
@@ -32,7 +32,7 @@ module.exports.run = async function ({ api, event, args }) {
   }
 
   try {
-    const apiUrl = `https://pinterest-api.p.rapidapi.com/v1 searches query=${encodeURIComponent(query)}&per_page=${quantity}`;
+    const apiUrl = `https://pinterest-api.p.rapidapi.com/v1/searches/query=${encodeURIComponent(query)}&per_page=${quantity}`;
     const options = {
       method: 'GET',
       headers: {
@@ -60,7 +60,7 @@ module.exports.run = async function ({ api, event, args }) {
         fs.writeFileSync(imgPath, Buffer.from(imgRes.data));
         attachments.push(fs.createReadStream(imgPath));
       } catch (e) {
-        console.log(`[ PINTEREST ] Skip image error.`);
+        console.log(`[ PINTEREST ] Skip image error: ${e}`);
       }
     }
 
@@ -76,6 +76,7 @@ module.exports.run = async function ({ api, event, args }) {
     }, messageID);
 
   } catch (error) {
-    throw error; 
+    console.error(error);
+    return api.sendMessage(`Error: ${error.message}`, threadID, messageID);
   }
 };
