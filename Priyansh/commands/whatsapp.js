@@ -7,7 +7,7 @@ module.exports.config = {
   name: "whatsapp",
   version: "16.0.0",
   hasPermission: 0,
-  credits: "𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗",
+  credits: "𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐘",
   description: "Aesthetic WhatsApp Call - Anti-Text-Error Version",
   commandCategory: "Edit",
   usages: "whatsapp [reply/mention]",
@@ -33,13 +33,12 @@ module.exports.run = async function({ api, event, Users }) {
       return await Jimp.read(url);
     };
 
-    const token = "6628568379%7Cc1e620fa708a1d5696fb991c1bde5662";
-    const heartLink = "https://i.postimg.cc/rmmpGQqV/images-(3).png";
-    const stickerLink = "https://i.imgur.com/4Xf5F3j.png";
+    const heartLink = "https://source.unsplash.com/100x100/?heart";
+    const stickerLink = "https://source.unsplash.com/180x180/?sticker";
 
     const [sAv, tAv, heart, sticker, fWhite32, fWhite16] = await Promise.all([
-      getImg(`https://graph.facebook.com/${senderID}/picture?width=1000&height=1000&access_token=${token}`),
-      getImg(`https://graph.facebook.com/${targetID}/picture?width=1000&height=1000&access_token=${token}`),
+      getImg(`https://graph.facebook.com/${senderID}/picture?width=1000&height=1000`),
+      getImg(`https://graph.facebook.com/${targetID}/picture?width=1000&height=1000`),
       getImg(heartLink),
       getImg(stickerLink).catch(() => new Jimp(1,1)),
       Jimp.loadFont(Jimp.FONT_SANS_32_WHITE),
@@ -106,7 +105,7 @@ module.exports.run = async function({ api, event, Users }) {
 
     api.unsendMessage(waitMsg.messageID);
     return api.sendMessage({
-      body: `💞 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩 𝐂𝐚𝐥𝐥 𝐀𝐞𝐬𝐭𝐡𝐞𝐭𝐢𝐜 💞\n━━━━━━━━━━━━━━━━\nDesign by Ahmad RDX`,
+      body: `💞 𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐏 𝐂𝐚𝐥𝐥 𝐀𝐞𝐬𝐭𝐡𝐞𝐭𝐢𝐜 💞\n━━━━━━━━━━━━━━━━\nDesign by Ahmad RDX`,
       attachment: fs.createReadStream(cachePath)
     }, threadID, () => fs.unlinkSync(cachePath), messageID);
 
