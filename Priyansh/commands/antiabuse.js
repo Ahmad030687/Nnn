@@ -4,6 +4,7 @@ const path = require("path");
 
 const dataPath = path.join(__dirname, "cache", "antiAbuseData.json");
 
+// JSON file initial check
 if (!fs.existsSync(dataPath)) {
   fs.writeFileSync(dataPath, JSON.stringify({ status: {}, warnings: {} }, null, 2));
 }
@@ -32,12 +33,14 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
   if (!body || senderID == api.getCurrentUserID()) return;
 
   const db = loadData();
-  if (!db.status[threadID] || !db.status[threadID]) return;
+  if (!db.status[threadID]) return;
 
+  // Admin Check
   const threadInfo = await api.getThreadInfo(threadID);
   if (threadInfo.adminIDs.some(item => item.id == senderID)) return;
 
   try {
+    //  UNIVERSAL PROMPT: Ab kisi bhi gaali ko batane ki zaroorat nahi
     const systemPrompt = `You are an expert linguistic monitor for South Asian languages (Urdu, Roman Urdu, Hindi, Punjabi) and English.
     Your task is to detect ANY form of abuse, toxicity, or disrespect, especially related to family (mother, sister, etc.), sexual slurs, or derogatory remarks.
     
@@ -46,11 +49,14 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     Analyze the intent. Even if it's coded (like "m_c", "b_c", "8cl") or Roman Urdu slangs. 
     If it is even 0.1% abusive or toxic, reply ONLY with "YES". Otherwise reply "NO".`;
 
-    const res = await axios.post("https://api.openai.com/v1/chat/completions", {
+    const res = await axios.post("https://api.openai.com/v1/completions", {
       model: "text-davinci-003",
       prompt: systemPrompt,
-      temperature: 0,
-      max_tokens: 2048
+      temperature: 0.7,
+      max_tokens: 100,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0
     }, {
       headers: { "Authorization": `Bearer ${global.config.OPENAI_API_KEY}` }
     });
@@ -88,12 +94,12 @@ module.exports.run = async function ({ api, event, args }) {
   const db = loadData();
 
   if (state == "on") {
-    if(!db.status) db.status = {};
+    if (!db.status) db.status = {};
     db.status[threadID] = true;
     saveData(db);
     return api.sendMessage(" Universal AHMMI Anti-Abuse: ACTIVATED", threadID, messageID);
   } else if (state == "off") {
-    if(!db.status) db.status = {};
+    if (!db.status) db.status = {};
     db.status[threadID] = false;
     saveData(db);
     return api.sendMessage(" Universal AHMMI Anti-Abuse: DEACTIVATED", threadID, messageID);
