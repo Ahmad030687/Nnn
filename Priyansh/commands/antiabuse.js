@@ -49,33 +49,32 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     Analyze the intent. Even if it's coded (like "m_c", "b_c", "8cl") or Roman Urdu slangs. 
     If it is even 0.1% abusive or toxic, reply ONLY with "YES". Otherwise reply "NO".`;
 
-    const res = await axios.post("https://api.openai.com/v1/chat/completions", {
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: "Strictly output only YES or NO based on toxicity." },
-        { role: "user", content: systemPrompt }
-      ],
-      temperature: 0.1
+    const res = await axios.post("https://api.ai21.com/v1/chat/completions", {
+      model: "j1-jumbo",
+      input: systemPrompt
     }, {
-      headers: { "Authorization": `Bearer ${global.config.OPENAI_API_KEY}` }
+      headers: { "Authorization": `Bearer ${global.config.AI21_API_KEY}` }
     });
 
-    const aiResponse = res.data.choices[0].message.content.trim().toUpperCase();
+    const aiResponse = res.data.output.trim().toUpperCase();
 
     if (aiResponse.includes("YES")) {
-      let userWarnings = db.warnings[senderID] || 0;
-      userWarnings++;
+      let dbWarnings = db.warnings;
+      if (!dbWarnings[senderID]) {
+        dbWarnings[senderID] = 0;
+      }
+      dbWarnings[senderID]++;
 
-      if (userWarnings >= 2) {
+      if (dbWarnings[senderID] >= 2) {
         api.sendMessage(` [ ELIMINATED ]\n\nBohot badtameezi ho gayi. Warning limit (2/2) khatam.\nGood Bye!`, threadID);
         api.removeUserFromGroup(senderID, threadID);
-        db.warnings[senderID] = 0;
+        dbWarnings[senderID] = 0;
       } else {
-        db.warnings[senderID] = userWarnings;
         const name = await Users.getNameUser(senderID);
-        api.sendMessage(` [ AHMII MONITOR ]\n\nOye ${name}!\nBadtameezi detect hui hai. Sudhar jao warna nikaal diye jaoge.\nWarning: ${userWarnings}/2`, threadID, messageID);
+        api.sendMessage(` [ AHMII MONITOR ]\n\nOye ${name}!\nBadtameezi detect hui hai. Sudhar jao warna nikaal diye jaoge.\nWarning: ${dbWarnings[senderID]}/2`, threadID, messageID);
       }
       
+      db.warnings = dbWarnings;
       saveData(db);
       api.unsendMessage(messageID);
     }
