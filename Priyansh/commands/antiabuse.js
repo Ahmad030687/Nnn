@@ -48,22 +48,18 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     Analyze the intent. Even if it's coded (like "m_c", "b_c", "8cl") or Roman Urdu slangs. 
     If it is even 0.1% abusive or toxic, reply ONLY with "YES". Otherwise reply "NO".`;
 
-    const res = await axios.post("https://api.openai.com/v1/completions", {
-      model: "text-davinci-003",
-      prompt: systemPrompt,
-      temperature: 0.7,
-      max_tokens: 2048
+    const res = await axios.post("https://api.ai21.com/v1/chat/completions", {
+      model: "j1-jumbo",
+      input: systemPrompt
     }, {
-      headers: { "Authorization": `Bearer ${global.config.OPENAI_API_KEY}` }
+      headers: { "Authorization": `Bearer ${global.config.AI21_API_KEY}` }
     });
 
-    const aiResponse = res.data.choices[0].text.trim().toUpperCase();
+    const aiResponse = res.data.output.trim().toUpperCase();
 
     if (aiResponse.includes("YES")) {
       let dbWarnings = db.warnings;
-      if (!dbWarnings[threadID]) {
-        dbWarnings[threadID] = {};
-      }
+      if (!dbWarnings[threadID]) dbWarnings[threadID] = {};
       if (!dbWarnings[threadID][senderID]) {
         dbWarnings[threadID][senderID] = 0;
       }
@@ -94,14 +90,10 @@ module.exports.run = async function ({ api, event, args }) {
 
   if (state == "on") {
     db.status[threadID] = true;
-    if (!db.warnings[threadID]) {
-      db.warnings[threadID] = {};
-    }
     saveData(db);
     return api.sendMessage(" Universal AHMMI Anti-Abuse: ACTIVATED", threadID, messageID);
   } else if (state == "off") {
     db.status[threadID] = false;
-    delete db.warnings[threadID];
     saveData(db);
     return api.sendMessage(" Universal AHMMI Anti-Abuse: DEACTIVATED", threadID, messageID);
   } else {
