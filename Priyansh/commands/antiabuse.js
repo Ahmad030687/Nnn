@@ -3,7 +3,7 @@ const fs = require("fs-extra");
 const path = require("path");
 
 const dataPath = __dirname + "/cache/antiAbuseData.json";
-const API_KEY = "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";
+const API_KEY = "YOUR_API_KEY"; // replace with a valid API key
 
 module.exports.config = {
   name: "antiabuse",
@@ -37,7 +37,6 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
   } catch (e) { /* ignore admin check if fails */ }
 
   try {
-    // 🧠 SMART PROMPT: Ab AI bacha nahi raha, barron ki tarah sochega
     const systemPrompt = `You are a mature group moderator. Your task is to detect REAL abuse while ignoring normal chat.
     
     GUIDELINES:
@@ -50,14 +49,14 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     
     Reply ONLY with "YES" or "NO".`;
 
-    const res = await axios.post("https://api.groq.com/openai/v1/chat/completions", {
-      model: "llama-3.3-70b-versatile",
+    const res = await axios.post("https://api.openai.com/v1/completions", {
+      model: "text-davinci-003",
       messages: [
         { role: "system", content: "You are a logical moderator. Output ONLY YES or NO." },
         { role: "user", content: systemPrompt }
       ],
       max_tokens: 5,
-      temperature: 0.2 // Thoda relax temperature taake AI "over-smart" na bane
+      temperature: 0.2
     }, {
       headers: { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json" }
     });
@@ -66,6 +65,7 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     console.log(`[ SMART-GUARD ] MSG: "${body}" | Result: "${aiResponse}"`);
 
     if (aiResponse.includes("YES")) {
+      if (!db.warnings) db.warnings = {};
       if (!db.warnings[sid]) db.warnings[sid] = 0;
       db.warnings[sid] += 1;
 
@@ -95,11 +95,13 @@ module.exports.run = async function ({ api, event, args }) {
   let db = fs.readJsonSync(dataPath);
   
   if (content === "on") {
+    if (!db.status) db.status = {};
     db.status[tid] = true;
     fs.writeJsonSync(dataPath, db);
     return api.sendMessage("🛡️ Smart AI Guard: ACTIVATED", threadID, messageID);
   } 
   else if (content === "off") {
+    if (!db.status) db.status = {};
     db.status[tid] = false;
     fs.writeJsonSync(dataPath, db);
     return api.sendMessage("🛡️ Smart AI Guard: DEACTIVATED", threadID, messageID);
