@@ -3,10 +3,10 @@ const path = require("path");
 
 module.exports.config = {
   name: "editcmd",
-  version: "1.0.0",
+  version: "1.1.0",
   hasPermssion: 2, // Sirf Bot Admin/Owner
   credits: "Ahmad RDX",
-  description: "Kisi bhi command ka code edit karein live",
+  description: "Command edit karein aur purana msg unsend karein",
   commandCategory: "System",
   usages: ".editcmd [command_name]",
   cooldowns: 5
@@ -16,26 +16,23 @@ module.exports.run = async function ({ api, event, args }) {
   const { threadID, messageID, senderID } = event;
   const commandName = args[0];
 
-  if (!commandName) return api.sendMessage("❌ Command ka naam toh batao bhai! (.editcmd help)", threadID, messageID);
+  if (!commandName) return api.sendMessage("❌ Command ka naam batayein!", threadID, messageID);
 
   const filePath = path.join(__dirname, `${commandName}.js`);
 
-  // Check if file exists
   if (!fs.existsSync(filePath)) {
-    return api.sendMessage(`❌ '${commandName}' naam ki koi file nahi mili.`, threadID, messageID);
+    return api.sendMessage(`❌ '${commandName}' nahi mili.`, threadID, messageID);
   }
 
-  // 1. Read Old Code
   const oldCode = fs.readFileSync(filePath, "utf-8");
 
-  // 2. Send Old Code and Ask for New Code
   return api.sendMessage(
-    `📝 **COMMAND:** ${commandName}.js\n\n👇 Ye raha purana code. Is message par apna **Naya Code** reply (Reply) karein.\n\n\`\`\`javascript\n${oldCode}\n\`\`\``,
+    `📝 **EDITING:** ${commandName}.js\n\n👇 Naya code reply karein. (Naya code save hote hi ye message delete ho jayega)\n\n\`\`\`javascript\n${oldCode}\n\`\`\``,
     threadID,
     (err, info) => {
       global.client.handleReply.push({
         name: this.config.name,
-        messageID: info.messageID,
+        messageID: info.messageID, // Ye ID unsend karne ke kaam aayegi
         author: senderID,
         commandName: commandName,
         filePath: filePath
@@ -48,28 +45,27 @@ module.exports.run = async function ({ api, event, args }) {
 module.exports.handleReply = async function ({ api, event, handleReply }) {
   const { body, threadID, messageID, senderID } = event;
 
-  // Security: Sirf wahi banda reply kare jisne command chalayi
   if (senderID != handleReply.author) return;
 
   try {
-    // 3. Save New Code
+    // 1. Naya code save karein
     fs.writeFileSync(handleReply.filePath, body, "utf-8");
 
-    // 4. Hot-Reload the Command
+    // 2. Command ko Reload karein
     delete require.cache[require.resolve(handleReply.filePath)];
     const newCommand = require(handleReply.filePath);
-    
-    // Global client mein update karna
     global.client.commands.delete(handleReply.commandName);
     global.client.commands.set(newCommand.config.name, newCommand);
 
+    // 3. 🔥 PURANA MESSAGE UNSEND KAREIN (Ye raha magic)
+    api.unsendMessage(handleReply.messageID);
+
     return api.sendMessage(
-      `✅ SUCCESS!\n\nCommand '${handleReply.commandName}' update ho gayi hai aur load bhi ho chuki hai.`,
+      `✅ **SUCCESS!**\n\nCommand '${handleReply.commandName}' update ho gayi hai.\nPurana code wala message delete kar diya gaya hai.`,
       threadID,
       messageID
     );
   } catch (error) {
-    return api.sendMessage(`❌ ERROR: Code save ya load nahi ho saka.\n\n${error.message}`, threadID, messageID);
+    return api.sendMessage(`❌ ERROR: ${error.message}`, threadID, messageID);
   }
 };
-
