@@ -31,11 +31,8 @@ module.exports.run = async function({ api, event, args }) {
     // Jail Overlay Bars (Transparent PNG)
     const jailBarsUrl = "https://i.postimg.cc/9f7P7mKz/jail-bars.png";
 
-    //========= ⚠️ REAL-TIME ERROR (For Bot B) =========//
-    // Maine yahan 'avatarUrl' ki jagah 'avatarURL' (Capital L) likha hai
-    // JavaScript Case-Sensitive hai, is liye ye 'undefined' error dega!
-    const userImg = await Jimp.read(avatarURL); 
-    //==================================================//
+    // Get user image from avatarUrl
+    const userImg = await Jimp.read(avatarUrl);
 
     const jailBars = await Jimp.read(jailBarsUrl);
 
