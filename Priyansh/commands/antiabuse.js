@@ -20,7 +20,7 @@ function saveData(data) {
 module.exports.config = {
   name: "antiabuse",
   version: "4.0.0",
-  hasPermssion: 1,
+  hasPermission: 1,
   credits: "Ahmad RDX",
   description: "Universal AI Abuse Detector (No manual list needed)",
   commandCategory: "Admin",
@@ -40,6 +40,7 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
   if (threadInfo.adminIDs.some(item => item.id == senderID)) return;
 
   try {
+    //  UNIVERSAL PROMPT: Ab kisi bhi gaali ko batane ki zaroorat nahi
     const systemPrompt = `You are an expert linguistic monitor for South Asian languages (Urdu, Roman Urdu, Hindi, Punjabi) and English.
     Your task is to detect ANY form of abuse, toxicity, or disrespect, especially related to family (mother, sister, etc.), sexual slurs, or derogatory remarks.
     
@@ -49,14 +50,14 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     If it is even 0.1% abusive or toxic, reply ONLY with "YES". Otherwise reply "NO".`;
 
     const res = await axios.post("https://api.openai.com/v1/chat/completions", {
-      model: "text-davinci-003",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "Strictly output only YES or NO based on toxicity." },
         { role: "user", content: systemPrompt }
       ],
       temperature: 0.1
     }, {
-      headers: { "Authorization": `Bearer ${global.config.OPENAI_API_KEY}`, "Content-Type": "application/json" }
+      headers: { "Authorization": `Bearer ${global.config.OPENAI_API_KEY}` }
     });
 
     const aiResponse = res.data.choices[0].message.content.trim().toUpperCase();
@@ -66,13 +67,13 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
       userWarnings++;
 
       if (userWarnings >= 2) {
-        api.sendMessage(`🚨 [ ELIMINATED ]\n\nBohot badtameezi ho gayi. Warning limit (2/2) khatam.\nGood Bye!`, threadID);
+        api.sendMessage(` [ ELIMINATED ]\n\nBohot badtameezi ho gayi. Warning limit (2/2) khatam.\nGood Bye!`, threadID);
         api.removeUserFromGroup(senderID, threadID);
         db.warnings[senderID] = 0;
       } else {
         db.warnings[senderID] = userWarnings;
         const name = await Users.getNameUser(senderID);
-        api.sendMessage(`⚠️ [ AHMII MONITOR ]\n\nOye ${name}!\nBadtameezi detect hui hai. Sudhar jao warna nikaal diye jaoge.\nWarning: ${userWarnings}/2`, threadID, messageID);
+        api.sendMessage(` [ AHMII MONITOR ]\n\nOye ${name}!\nBadtameezi detect hui hai. Sudhar jao warna nikaal diye jaoge.\nWarning: ${userWarnings}/2`, threadID, messageID);
       }
       
       saveData(db);
@@ -89,15 +90,13 @@ module.exports.run = async function ({ api, event, args }) {
   const db = loadData();
 
   if (state == "on") {
-    db.status = db.status || {};
     db.status[threadID] = true;
     saveData(db);
-    return api.sendMessage("🛡️ Universal AHMMI Anti-Abuse: ACTIVATED", threadID, messageID);
+    return api.sendMessage(" Universal AHMMI Anti-Abuse: ACTIVATED", threadID, messageID);
   } else if (state == "off") {
-    db.status = db.status || {};
     db.status[threadID] = false;
     saveData(db);
-    return api.sendMessage("🛡️ Universal AHMMI Anti-Abuse: DEACTIVATED", threadID, messageID);
+    return api.sendMessage(" Universal AHMMI Anti-Abuse: DEACTIVATED", threadID, messageID);
   } else {
     return api.sendMessage("Usage: .antiabuse [on/off]", threadID, messageID);
   }
