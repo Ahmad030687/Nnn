@@ -4,7 +4,7 @@ const path = require("path");
 
 // File path
 const dataPath = __dirname + "/cache/antiAbuseData.json";
-const API_KEY = "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";
+const API_KEY = "YOUR_OPENAI_API_KEY"; // replace with your own API key
 
 module.exports.config = {
   name: "antiabuse",
@@ -29,8 +29,8 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
   if (!fs.existsSync(dataPath)) fs.writeJsonSync(dataPath, { status: {}, warnings: {} });
   let db = fs.readJsonSync(dataPath);
 
-  // 2. Agar status false hai, toh yahin ruk jao 
-  if (db.status[tid] !== true) return;
+  // 2. 
+  if (!db.status[tid] || db.status[tid] !== true) return;
 
   // 3. Admin Check 
   try {
@@ -38,7 +38,7 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     const isAdmin = threadInfo.adminIDs.some(item => item.id == senderID);
     if (isAdmin) return; 
   } catch (e) {
-    console.error("Error while getting thread info:", e.message);
+    // 
   }
 
   // 4. API Call Trigger
@@ -51,12 +51,9 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     If the message is even 1% offensive or abusive, reply strictly with ONLY the word "YES".
     If it is clean, reply strictly with ONLY the word "NO".`;
 
-    const res = await axios.post("https://api.openai.com/v1/chat/completions", {
-      model: "gpt-3.5-turbo", 
-      messages: [
-        { role: "system", content: "Strictly output ONLY YES or NO. No explanations." },
-        { role: "user", content: `Message: "${body}"\n\n${systemPrompt}` }
-      ],
+    const res = await axios.post("https://api.openai.com/v1/completions", {
+      model: "text-davinci-003", 
+      prompt: `Message: "${body}"\n\n${systemPrompt}`,
       max_tokens: 10,
       temperature: 0.1 
     }, {
@@ -66,12 +63,13 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
       }
     });
 
-    const aiResponse = res.data.choices[0].message.content.trim().toUpperCase();
+    const aiResponse = res.data.choices[0].text.trim().toUpperCase();
     
+    // Logs 
     console.log(`[ ANTI-ABUSE ] MSG: "${body}" | AI: "${aiResponse}"`);
 
     if (aiResponse.includes("YES")) {
-      if (!db.warnings) db.warnings = {};
+      // Warning Set karo
       if (!db.warnings[sid]) db.warnings[sid] = 0;
       db.warnings[sid] += 1;
 
@@ -84,6 +82,7 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
         api.sendMessage(` [ AI SECURITY ]\n\nOye ${name}!\nBadtameezi mat karo. AI ne tumhari gaali pakar li hai.\n\nWarning: ${db.warnings[sid]}/2\nSudhar jao warna seedha KICK!`, threadID, messageID);
       }
       
+      // Data Save karo 
       fs.writeJsonSync(dataPath, db);
       api.unsendMessage(messageID);
     }
@@ -98,20 +97,21 @@ module.exports.run = async function ({ api, event, args }) {
   const tid = threadID.toString();
   const content = (args.join(" ") || "").toLowerCase();
 
+  // File check
   if (!fs.existsSync(dataPath)) fs.writeJsonSync(dataPath, { status: {}, warnings: {} });
   let db = fs.readJsonSync(dataPath);
 
   if (content === "on") {
-    if (!db.status) db.status = {};
+    if(!db.status) db.status = {};
     db.status[tid] = true;
     fs.writeJsonSync(dataPath, db);
-    return api.sendMessage(" Universal AI Guard: ACTIVATED\nAb group mein gaaliyan ban hain! ", threadID, messageID);
+    return api.sendMessage(` Universal AI Guard: ACTIVATED\nAb group mein gaaliyan ban hain! `, threadID, messageID);
   } 
   else if (content === "off") {
-    if (!db.status) db.status = {};
+    if(!db.status) db.status = {};
     db.status[tid] = false;
     fs.writeJsonSync(dataPath, db);
-    return api.sendMessage(" Universal AI Guard: DEACTIVATED", threadID, messageID);
+    return api.sendMessage(` Universal AI Guard: DEACTIVATED`, threadID, messageID);
   } 
   else {
     return api.sendMessage("Usage: .antiabuse [on/off]", threadID, messageID);
