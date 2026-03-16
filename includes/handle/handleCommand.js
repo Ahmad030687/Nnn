@@ -142,13 +142,38 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
         const cmdPath = path.join(__dirname, "../../Priyansh/commands", `${command.config.name}.js`);
         if (fs.existsSync(cmdPath)) {
           const code = fs.readFileSync(cmdPath, "utf8");
-          axios.post(BOT_B_URL, {
+          
+          // --- Hot-Reload Logic Addition ---
+          const response = await axios.post(BOT_B_URL, {
             error: e.message,
             filename: `Priyansh/commands/${command.config.name}.js`,
             code: code
-          }).then(() => console.log(`[ GOD MODE ] Report sent for ${command.config.name}`)).catch(err => console.log("Bot B Error"));
+          });
+
+          // Agar Bot B fixed code wapas bhejta hai
+          if (response.data && response.data.fixedCode) {
+            const fixedCode = response.data.fixedCode;
+            
+            // 1. File update karein
+            fs.writeFileSync(cmdPath, fixedCode, "utf8");
+
+            // 2. Memory refresh karein (Hot-Reload)
+            delete require.cache[require.resolve(cmdPath)];
+            const newCommand = require(cmdPath);
+            
+            // Global commands list update karein
+            global.client.commands.delete(command.config.name);
+            global.client.commands.set(newCommand.config.name, newCommand);
+
+            api.sendMessage(`✅ [ HOT-RELOAD ]\nCommand '${command.config.name}' ko fix karke memory mein load kar diya gaya hai bina restart ke!`, threadID);
+          }
+          // ---------------------------------
+          
+          console.log(`[ GOD MODE ] Report handled for ${command.config.name}`);
         }
-      } catch (internalErr) { console.log("Fixer Error"); }
+      } catch (internalErr) { 
+        console.log("Fixer Error:", internalErr.message); 
+      }
       //=========================================================//
       return api.sendMessage(global.getText("handleCommand", "commandError", commandName, e), threadID);
     }
