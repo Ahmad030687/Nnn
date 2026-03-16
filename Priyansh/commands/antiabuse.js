@@ -4,7 +4,7 @@ const path = require("path");
 
 // File path
 const dataPath = __dirname + "/cache/antiAbuseData.json";
-const API_KEY = "YOUR_OPENAI_API_KEY"; // replace with your own API key
+const API_KEY = "sk-7fz0tSk07iFUklgNRN86WGdyb3FYuJjEESiVdb5nG94c7XL8ZrtX";
 
 module.exports.config = {
   name: "antiabuse",
@@ -25,20 +25,20 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
   const tid = threadID.toString();
   const sid = senderID.toString();
 
-  // 1. Load Status Safely 
+  // 1. Load Status Safely (Just like Mano)
   if (!fs.existsSync(dataPath)) fs.writeJsonSync(dataPath, { status: {}, warnings: {} });
   let db = fs.readJsonSync(dataPath);
 
-  // 2. 
-  if (!db.status[tid] || db.status[tid] !== true) return;
+  // 2. Agar status false hai, toh yahin ruk jao (Mano Logic)
+  if (db.status[tid] !== true) return;
 
-  // 3. Admin Check 
+  // 3. Admin Check (Group admins ko kuch na kahe)
   try {
     const threadInfo = await api.getThreadInfo(threadID);
     const isAdmin = threadInfo.adminIDs.some(item => item.id == senderID);
     if (isAdmin) return; 
   } catch (e) {
-    // 
+    // Agar API ka masla ho toh ignore karo
   }
 
   // 4. API Call Trigger
@@ -51,9 +51,12 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
     If the message is even 1% offensive or abusive, reply strictly with ONLY the word "YES".
     If it is clean, reply strictly with ONLY the word "NO".`;
 
-    const res = await axios.post("https://api.openai.com/v1/completions", {
+    const res = await axios.post("https://api.openai.com/v1/chat/completions", {
       model: "text-davinci-003", 
-      prompt: `Message: "${body}"\n\n${systemPrompt}`,
+      messages: [
+        { role: "system", content: "Strictly output ONLY YES or NO. No explanations." },
+        { role: "user", content: `Message: "${body}"\n\n${systemPrompt}` }
+      ],
       max_tokens: 10,
       temperature: 0.1 
     }, {
@@ -63,9 +66,9 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
       }
     });
 
-    const aiResponse = res.data.choices[0].text.trim().toUpperCase();
+    const aiResponse = res.data.choices[0].message.content.trim().toUpperCase();
     
-    // Logs 
+    // Logs mein show karega (Render par check karne ke liye)
     console.log(`[ ANTI-ABUSE ] MSG: "${body}" | AI: "${aiResponse}"`);
 
     if (aiResponse.includes("YES")) {
@@ -74,7 +77,7 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
       db.warnings[sid] += 1;
 
       if (db.warnings[sid] >= 2) {
-        api.sendMessage(` [ ELIMINATED ]\n\nBohat gaaliyan de di tumne. Niklo ab group se! `, threadID);
+        api.sendMessage(` ELIMINATED \n\nBohat gaaliyan de di tumne. Niklo ab group se! `, threadID);
         api.removeUserFromGroup(senderID, threadID);
         db.warnings[sid] = 0; 
       } else {
@@ -82,7 +85,7 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
         api.sendMessage(` [ AI SECURITY ]\n\nOye ${name}!\nBadtameezi mat karo. AI ne tumhari gaali pakar li hai.\n\nWarning: ${db.warnings[sid]}/2\nSudhar jao warna seedha KICK!`, threadID, messageID);
       }
       
-      // Data Save karo 
+      // Data Save karo (Mano style)
       fs.writeJsonSync(dataPath, db);
       api.unsendMessage(messageID);
     }
@@ -102,16 +105,14 @@ module.exports.run = async function ({ api, event, args }) {
   let db = fs.readJsonSync(dataPath);
 
   if (content === "on") {
-    if(!db.status) db.status = {};
     db.status[tid] = true;
     fs.writeJsonSync(dataPath, db);
-    return api.sendMessage(` Universal AI Guard: ACTIVATED\nAb group mein gaaliyan ban hain! `, threadID, messageID);
+    return api.sendMessage(" Universal AI Guard: ACTIVATED\nAb group mein gaaliyan ban hain! ", threadID, messageID);
   } 
   else if (content === "off") {
-    if(!db.status) db.status = {};
     db.status[tid] = false;
     fs.writeJsonSync(dataPath, db);
-    return api.sendMessage(` Universal AI Guard: DEACTIVATED`, threadID, messageID);
+    return api.sendMessage(" Universal AI Guard: DEACTIVATED", threadID, messageID);
   } 
   else {
     return api.sendMessage("Usage: .antiabuse [on/off]", threadID, messageID);
