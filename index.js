@@ -7,9 +7,9 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Dashboard for Uptime
+// Render ko zinda rakhne ke liye Dashboard
 app.get('/', (req, res) => {
-    res.send('Mano Bot (Full Scan Mode) is LIVE! 🛡️🚑');
+    res.send('Mano Bot (God Mode Engine) is LIVE! 🛡️🚑');
 });
 
 app.listen(port, () => {
@@ -17,7 +17,7 @@ app.listen(port, () => {
 });
 
 ///////////////////////////////////////////////////////////
-//========= 🛡️ SMART ERROR REPORTER (BOT A) =========//
+//========= 🛡️ CRITICAL CRASH REPORTER (BOT A) =========//
 ///////////////////////////////////////////////////////////
 
 const BOT_B_URL = "https://auto-healer.onrender.com/fix-it"; 
@@ -25,29 +25,27 @@ const BOT_B_URL = "https://auto-healer.onrender.com/fix-it";
 async function reportErrorToFixer(err) {
     try {
         const stackLines = err.stack.split('\n');
-        // Commands folder dhoondne ka logic
+        // Check karna ke error 'commands' folder mein hai ya nahi
         const callerLine = stackLines.find(line => line.includes('commands'));
         
         let targetFile = "";
         if (callerLine) {
-            // Ye regex 'Priyansh/commands/file.js' ya 'modules/commands/file.js' dono pakar leta hai
+            // Priyansh folder aur normal commands dono ko support karta hai
             const match = callerLine.match(/((?:Priyansh\/)?(?:modules\/)?commands\/.*?\.js)/);
             if (match) targetFile = match[1];
         }
 
-        // Agar stack trace se kuch na miley toh default jail.js
+        // Agar kuch na milay toh default check
         if (!targetFile) targetFile = "Priyansh/commands/jail.js";
 
-        // File path set karein
         let filePath = path.join(__dirname, targetFile);
         
-        // Agar file exist nahi karti toh check karein ke kya wo Priyansh folder mein hai
+        // Agar file exist nahi karti toh dhoondna
         if (!fs.existsSync(filePath)) {
             const possiblePaths = [
                 path.join(__dirname, "Priyansh", "commands", path.basename(targetFile)),
                 path.join(__dirname, "modules", "commands", path.basename(targetFile))
             ];
-            
             for (let p of possiblePaths) {
                 if (fs.existsSync(p)) {
                     filePath = p;
@@ -60,8 +58,8 @@ async function reportErrorToFixer(err) {
         if (fs.existsSync(filePath)) {
             const codeContent = fs.readFileSync(filePath, "utf8");
             
-            console.log(`[ CRASH DETECTED ] File: ${targetFile}`);
-            console.log(`[ SOS ] Sending full report to Bot B...`);
+            console.log(`[ CRITICAL CRASH ] File: ${targetFile}`);
+            console.log(`[ SOS ] Sending report to Surgeon Bot B...`);
 
             await axios.post(BOT_B_URL, {
                 error: err.message,
@@ -70,29 +68,27 @@ async function reportErrorToFixer(err) {
                 code: codeContent
             });
             
-            console.log(`[ SUCCESS ] SOS Sent! Bot B will fix ${targetFile} now.`);
-        } else {
-            console.log(`[ ERROR ] Could not locate the crashing file: ${targetFile}`);
+            console.log(`[ SUCCESS ] SOS Sent! Bot B is fixing the file.`);
         }
     } catch (e) {
-        console.log("[ ERROR ] Bot B offline hai ya URL ka masla hai.");
+        console.log("[ ERROR ] Bot B se rabta nahi ho saka.");
     }
 }
 
-// Global Exception Handler
+// Global Exception Handler - Bot phat-te hi ye chalega
 process.on('uncaughtException', async (err) => {
     console.error(`[ BOT CRASHED ] : ${err.message}`);
     await reportErrorToFixer(err);
-    // 5 second ka wait taake request chali jaye
+    // 5 seconds delay taake report chali jaye
     setTimeout(() => { process.exit(1); }, 5000);
 });
 
 /////////////////////////////////////////////////////////
-//========= BOT PROCESS MANAGEMENT =========//
+//========= BOT PROCESS MANAGEMENT (START) =========//
 /////////////////////////////////////////////////////////
 
 function startBot() {
-    // Child process jo bot ko run karega
+    // Apni main file ka naam check karlein (Shaan-Khan-K.js)
     const child = spawn("node", ["--trace-warnings", "Shaan-Khan-K.js"], {
         cwd: __dirname,
         stdio: "inherit",
@@ -101,12 +97,12 @@ function startBot() {
 
     child.on("close", (codeExit) => {
         if (codeExit !== 0) {
-            console.log(`[ RESTARTING ] Bot is down. Waiting for Surgery (10s)...`);
-            // Bot B ko file update karne ke liye 10 sec ka gap dein
+            console.log(`[ RESTARTING ] Bot down hai. Surgery ka waqt hai (10s)...`);
+            // 10 second ka wait taake Bot B file theek kar ke push kar de
             setTimeout(startBot, 10000);
         }
     });
 }
 
-// Bot shuru karein
+// Start the engine
 startBot();
