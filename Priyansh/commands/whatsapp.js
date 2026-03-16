@@ -120,4 +120,3 @@ module.exports.run = async function({ api, event, Users }) {
     return api.sendMessage(`❌ Error: ${err.message}`, threadID, messageID);
   }
 };
-        
