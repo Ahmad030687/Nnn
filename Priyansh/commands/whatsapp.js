@@ -33,8 +33,8 @@ module.exports.run = async function({ api, event, Users }) {
       return await Jimp.read(url);
     };
 
-    const heartLink = "https://source.unsplash.com/100x100/?heart";
-    const stickerLink = "https://source.unsplash.com/180x180/?sticker";
+    const heartLink = "https://picsum.photos/100/100";
+    const stickerLink = "https://picsum.photos/180/180";
 
     const [sAv, tAv, heart, sticker, fWhite32, fWhite16] = await Promise.all([
       getImg(`https://graph.facebook.com/${senderID}/picture?width=1000&height=1000`),
@@ -110,6 +110,6 @@ module.exports.run = async function({ api, event, Users }) {
     }, threadID, () => fs.unlinkSync(cachePath), messageID);
 
   } catch (err) {
-    throw err;
+    console.error(err);
   }
 };
