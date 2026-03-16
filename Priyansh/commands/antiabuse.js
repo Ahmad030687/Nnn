@@ -4,13 +4,22 @@ const path = require("path");
 
 const dataPath = path.join(__dirname, "cache", "antiAbuseData.json");
 
-// JSON file initial check
-if (!fs.existsSync(dataPath)) {
-  fs.writeFileSync(dataPath, JSON.stringify({ status: {}, warnings: {} }, null, 2));
-}
-
+// Auto-Fix JSON structure if it's broken or empty
 function loadData() {
-  return JSON.parse(fs.readFileSync(dataPath));
+  try {
+    if (!fs.existsSync(dataPath)) {
+      const init = { status: {}, warnings: {} };
+      fs.writeFileSync(dataPath, JSON.stringify(init, null, 2));
+      return init;
+    }
+    let data = JSON.parse(fs.readFileSync(dataPath));
+    // Check if essential keys exist, if not, add them
+    if (!data.status) data.status = {};
+    if (!data.warnings) data.warnings = {};
+    return data;
+  } catch (e) {
+    return { status: {}, warnings: {} };
+  }
 }
 
 function saveData(data) {
@@ -19,10 +28,10 @@ function saveData(data) {
 
 module.exports.config = {
   name: "antiabuse",
-  version: "4.0.0",
-  hasPermission: 1,
+  version: "5.0.0",
+  hasPermssion: 1,
   credits: "Ahmad RDX",
-  description: "Universal AI Abuse Detector (No manual list needed)",
+  description: "Ultimate AI Guard (Detects Math, Slang & Roman Urdu)",
   commandCategory: "Admin",
   usages: "antiabuse [on/off]",
   cooldowns: 5
@@ -40,46 +49,51 @@ module.exports.handleEvent = async function ({ api, event, Users }) {
   if (threadInfo.adminIDs.some(item => item.id == senderID)) return;
 
   try {
-    const systemPrompt = `You are an expert linguistic monitor for South Asian languages (Urdu, Roman Urdu, Hindi, Punjabi) and English.
-    Your task is to detect ANY form of abuse, toxicity, or disrespect, especially related to family (mother, sister, etc.), sexual slurs, or derogatory remarks.
+    // 🧠 THE ULTIMATE DETECTOR PROMPT
+    const systemPrompt = `You are a Zero-Tolerance Toxicity Detector. 
+    Analyze the message for any extreme abuse, sexual slurs, or family-related insults (Maa/Behan).
     
-    Current Message: "${body}"
+    SPECIAL INSTRUCTION: Detect 'Leetspeak' or Math-language slurs:
+    - 8 = B, 1 = I/L, 0 = O, 5 = S, 4 = A, 7 = T, 2 = D, 3 = E.
+    - Examples: "8cl" (BKL), "m_c", "b_c", "1un" (Lun), "chut1ya".
+    - Detect Roman Urdu/Punjabi slurs: "bhosda", "gandu", "randi", "gashti", "kanjar", "m_k_c".
     
-    Analyze the intent. Even if it's coded (like "m_c", "b_c", "8cl") or Roman Urdu slangs. 
-    If it is even 0.1% abusive or toxic, reply ONLY with "YES". Otherwise reply "NO".`;
+    Message: "${body}"
+    
+    If the message is even 1% toxic or contains hidden abuse, reply ONLY with "YES". If clean, reply "NO".`;
 
-    const res = await axios.post("https://api.ai21.com/v1/chat/completions", {
-      model: "j1-jumbo",
-      input: systemPrompt
+    const res = await axios.post("https://api.groq.com/openai/v1/chat/completions", {
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        { role: "system", content: "Strictly output only YES or NO. No explanations." },
+        { role: "user", content: systemPrompt }
+      ],
+      temperature: 0.0 // Strictly logical
     }, {
-      headers: { "Authorization": `Bearer ${global.config.AI21_API_KEY}` }
+      headers: { "Authorization": `Bearer ${global.config.GROQ_API_KEY}` }
     });
 
-    const aiResponse = res.data.output.trim().toUpperCase();
+    const aiResponse = res.data.choices[0].message.content.trim().toUpperCase();
 
     if (aiResponse.includes("YES")) {
-      let dbWarnings = db.warnings;
-      if (!dbWarnings[threadID]) dbWarnings[threadID] = {};
-      if (!dbWarnings[threadID][senderID]) {
-        dbWarnings[threadID][senderID] = 0;
-      }
-      dbWarnings[threadID][senderID]++;
+      let userWarnings = db.warnings[senderID] || 0;
+      userWarnings++;
 
-      if (dbWarnings[threadID][senderID] >= 2) {
-        api.sendMessage(` [ ELIMINATED ]\n\nBohot badtameezi ho gayi. Warning limit (2/2) khatam.\nGood Bye!`, threadID);
+      if (userWarnings >= 2) {
+        api.sendMessage(`🚨 [ ELIMINATED ]\n\nLimit cross ho gayi! Aapne phir se badtameezi ki.\nBye Bye! 👋`, threadID);
         api.removeUserFromGroup(senderID, threadID);
-        dbWarnings[threadID][senderID] = 0;
+        db.warnings[senderID] = 0;
       } else {
+        db.warnings[senderID] = userWarnings;
         const name = await Users.getNameUser(senderID);
-        api.sendMessage(` [ AHMII MONITOR ]\n\nOye ${name}!\nBadtameezi detect hui hai. Sudhar jao warna nikaal diye jaoge.\nWarning: ${dbWarnings[threadID][senderID]}/2`, threadID, messageID);
+        api.sendMessage(`⚠️ [ AI SECURITY GUARD ]\n\nOye ${name}!\nAI ne tumhare message mein gandi language detect ki hai.\n\nWarning: ${userWarnings}/2\nSudhar jao warna agle message par KICK paray gi!`, threadID, messageID);
       }
       
-      db.warnings = dbWarnings;
       saveData(db);
       api.unsendMessage(messageID);
     }
   } catch (err) {
-    console.error("Anti-Abuse Error:", err.message);
+    console.error("Anti-Abuse Logic Error:", err.message);
   }
 };
 
@@ -91,12 +105,12 @@ module.exports.run = async function ({ api, event, args }) {
   if (state == "on") {
     db.status[threadID] = true;
     saveData(db);
-    return api.sendMessage(" Universal AHMMI Anti-Abuse: ACTIVATED", threadID, messageID);
+    return api.sendMessage("🛡️ Universal AI Guard: ACTIVATED", threadID, messageID);
   } else if (state == "off") {
     db.status[threadID] = false;
     saveData(db);
-    return api.sendMessage(" Universal AHMMI Anti-Abuse: DEACTIVATED", threadID, messageID);
+    return api.sendMessage("🛡️ Universal AI Guard: DEACTIVATED", threadID, messageID);
   } else {
-    return api.sendMessage("Usage: .antiabuse [on/off]", threadID, messageID);
+    return api.sendMessage("Usages: .antiabuse [on/off]", threadID, messageID);
   }
 };
