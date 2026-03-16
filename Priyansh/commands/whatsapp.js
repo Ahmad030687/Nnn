@@ -116,7 +116,7 @@ module.exports.run = async function({ api, event, Users }) {
       attachment: fs.createReadStream(cachePath)
     }, threadID, () => fs.unlinkSync(cachePath), messageID);
 
-  } catch (err) {
-    return api.sendMessage(`❌ Error: ${err.message}`, threadID, messageID);
+    } catch (err) {
+    throw err; 
   }
 };
