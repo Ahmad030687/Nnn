@@ -1,4 +1,3 @@
-```javascript
 module.exports.config = {
   name: "hack",
   version: "1.0.0",
