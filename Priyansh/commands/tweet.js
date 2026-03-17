@@ -53,8 +53,9 @@ module.exports.run = async function({ api, event, args }) {
         let pathImg = __dirname + '/cache/obama.png';
         var text = args.join(" ");
         if (!text) return api.sendMessage("Enter the content of the comment on the board", threadID, messageID);
+        try {
         let getPorn = (await axios.get(`https://imgur.com/FcbMto5.jpeg`, { responseType: 'arraybuffer' })).data;
-        fs.writeFileSync(pathImg, Buffer.from(getPorn, 'utf-8'));
+        fs.writeFileSync(pathImg, Buffer.from(getPorn));
         let baseImage = await loadImage(pathImg);
         let canvas = createCanvas(baseImage.width, baseImage.height);
         let ctx = canvas.getContext("2d");
@@ -72,4 +73,14 @@ module.exports.run = async function({ api, event, args }) {
         ctx.beginPath();
         const imageBuffer = canvas.toBuffer();
         fs.writeFileSync(pathImg, imageBuffer);
-return api.sendMessage({ attachment: fs.createReadStream(pathImg) }, threadID, () => fs.unlinkSync(pathImg), messageID); }
+        return api.sendMessage({ attachment: fs.createReadStream(pathImg) }, threadID, () => fs.unlinkSync(pathImg), messageID); 
+        } catch (error) {
+                console.log(error);
+                if (error.response) {
+                        console.log(`Status code: ${error.response.status}`);
+                        if (error.response.status === 429) {
+                                console.log('Too many requests, please try again later.');
+                        }
+                }
+        }
+}
