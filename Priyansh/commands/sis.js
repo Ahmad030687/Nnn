@@ -20,8 +20,8 @@ module.exports.onLoad = async() => {
     const { existsSync, mkdirSync } = global.nodemodule["fs-extra"];
     const { downloadFile } = global.utils;
     const dirMaterial = __dirname + `/cache/canvas/`;
-    const path = resolve(__dirname, 'cache/canvas', 'sis.png');
-    if (!existsSync(dirMaterial + "canvas")) mkdirSync(dirMaterial, { recursive: true });
+    const path = resolve(__dirname, 'cache', 'canvas', 'sis.png');
+    if (!existsSync(dirMaterial)) mkdirSync(dirMaterial, { recursive: true });
     if (!existsSync(path)) await downloadFile("https://i.imgur.com/n2FGJFe.jpg", path); 
 }
 
@@ -38,10 +38,10 @@ async function makeImage({ one, two }) {
     let avatarTwo = __root + `/avt_${two}.png`;
     
     let getAvatarOne = (await axios.get(`https://graph.facebook.com/${one}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
-    fs.writeFileSync(avatarOne, Buffer.from(getAvatarOne, 'utf-8'));
+    fs.writeFileSync(avatarOne, Buffer.from(getAvatarOne));
     
     let getAvatarTwo = (await axios.get(`https://graph.facebook.com/${two}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: 'arraybuffer' })).data;
-    fs.writeFileSync(avatarTwo, Buffer.from(getAvatarTwo, 'utf-8'));
+    fs.writeFileSync(avatarTwo, Buffer.from(getAvatarTwo));
     
     let circleOne = await jimp.read(await circle(avatarOne));
     let circleTwo = await jimp.read(await circle(avatarTwo));
