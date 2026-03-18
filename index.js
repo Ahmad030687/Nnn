@@ -32,9 +32,7 @@ app.listen(port, '0.0.0.0', () => {
 //========= Create start bot and make it loop =========//
 /////////////////////////////////////////////////////////
 
-// Initialize global restart counter
-global.countRestart = global.countRestart || 0;
-
+// Ahmad RDX - 24/7 Auto Restart Logic
 function startBot(message) {
     if (message) logger(message, "[ Starting ]");
 
@@ -45,13 +43,13 @@ function startBot(message) {
     });
 
     child.on("close", (codeExit) => {
-        if (codeExit !== 0 && global.countRestart < 5) {
-            global.countRestart += 1;
-            logger(`Bot exited with code ${codeExit}. Restarting... (${global.countRestart}/5)`, "[ Restarting ]");
-            startBot();
-        } else {
-            logger(`Bot stopped after ${global.countRestart} restarts.`, "[ Stopped ]");
-        }
+        // Limit hata di gayi hai. Ab bot INFINITE loop mein restart hoga.
+        logger(`Bot exited with code ${codeExit}. Restarting in 3 seconds...`, "[ Restarting ]");
+        
+        // 3 second ka delay taake spam na ho aur server hang na ho
+        setTimeout(() => {
+            startBot("Restarting Bot...");
+        }, 3000); 
     });
 
     child.on("error", (error) => {
@@ -59,10 +57,5 @@ function startBot(message) {
     });
 };
 
-////////////////////////////////////////////////
-//========= Check update from Github =========//
-////////////////////////////////////////////////
-
-
 // Start the bot
-startBot();
+startBot("Initialization...");
