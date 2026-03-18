@@ -288,6 +288,16 @@ function onBot({ models: botModel }) {
             return listener(message);
         };
         global.handleListen = loginApiData.listenMqtt(listenerCallback);
+                // 🔄 AHMAD RDX - AUTOMATIC APPSTATE REFRESHER (ANTI-LOGOUT)
+        setInterval(() => {
+            try {
+                const currentState = loginApiData.getAppState();
+                writeFileSync(appStateFile, JSON.stringify(currentState, null, '\x09'));
+                logger("AppState Auto-Refreshed successfully to keep session alive!", "[ ANTI-LOGOUT ]");
+            } catch (error) {
+                logger("AppState refresh fail ho gaya: " + error.message, "[ ANTI-LOGOUT ERROR ]");
+            }
+        }, 1000 * 60 * 60); // Har 1 Ghante (60 mins) baad refresh hoga
         try {
             await checkBan(loginApiData);
         } catch (error) {
