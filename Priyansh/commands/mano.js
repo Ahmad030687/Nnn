@@ -97,7 +97,7 @@ module.exports.run = async function ({ api, event, args }) {
 
 // ================= CHAT FUNCTION =================
 async function chatWithMano(api, event, query) {
-  const apiKey = "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"; 
+  const apiKey = "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"; 
   const isOwner = OWNER_UID.includes(event.senderID.toString());
 
   const systemPrompt = isOwner
