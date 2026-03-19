@@ -4,132 +4,117 @@ const axios = require("axios");
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegStatic = require("ffmpeg-static");
 
-// Use static ffmpeg binary (Bypasses the need to install ffmpeg on Render)
+// Render par FFmpeg install nahi hota, isliye static path set karna zaroori hai
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
 module.exports.config = {
     name: "poetry",
-    version: "1.0.0",
+    version: "3.0.0",
     hasPermssion: 0,
     credits: "Ahmad RDX",
-    description: "Remove green background from video & overlay on replied image",
+    description: "Sabse tez green screen poetry overlay command",
     commandCategory: "fun",
     usages: "[v1/v2]",
-    cooldowns: 25,
+    cooldowns: 10,
     usePrefix: true,
     dependencies: {
-        "axios": "^1.6.0",
-        "fs-extra": "^11.2.0",
-        "fluent-ffmpeg": "^2.1.3",
-        "ffmpeg-static": "^5.2.0"
+        "axios": "",
+        "fs-extra": "",
+        "fluent-ffmpeg": "",
+        "ffmpeg-static": ""
     }
 };
 
 module.exports.run = async function ({ api, event, args }) {
     const { threadID, messageID, messageReply } = event;
-
-    // Helper function for quick replies
     const reply = (msg) => api.sendMessage(msg, threadID, messageID);
 
-    // Check if user replied to an image
-    if (!messageReply || !messageReply.attachments || messageReply.attachments.length === 0 || messageReply.attachments[0].type !== "photo") {
-        return reply("❌ Pehle kisi **Photo** ka reply karein is command ke sath:\n• poetry\n• poetry v2");
+    // 1. Photo Check
+    if (!messageReply || !messageReply.attachments || messageReply.attachments[0].type !== "photo") {
+        return reply("❌ Ahmad bhai, pehle kisi Photo ka reply karein is command ke sath!");
     }
 
+    // 2. Category (v1/v2) Logic
     const version = (args[0] || "v1").toLowerCase();
-    if (!["v1", "v2"].includes(version)) {
-        return reply("❌ Sirf v1 ya v2 allowed hai.\nExample: !poetry v2");
-    }
+    if (!["v1", "v2"].includes(version)) return reply("❌ Sirf v1 (Sad) ya v2 (Attitude) use karein.");
 
-    // Set Cache Directories
     const cacheDir = path.join(__dirname, "cache");
     const videoDir = path.join(cacheDir, "poetry_videos", version);
     const tempDir = path.join(cacheDir, "poetry_temp");
 
-    // Ensure directories exist
-    fs.ensureDirSync(cacheDir);
+    // Folders check/create
     fs.ensureDirSync(videoDir);
     fs.ensureDirSync(tempDir);
 
     let videos = [];
     try {
-        videos = fs.readdirSync(videoDir).filter(f => f.toLowerCase().endsWith(".mp4"));
-    } catch (err) {
-        return reply(`❌ Folder error: cache/poetry_videos/${version} check karein.`);
-    }
+        videos = fs.readdirSync(videoDir).filter(f => f.endsWith(".mp4"));
+    } catch (e) { return reply("❌ Video folders (v1/v2) nahi mile!"); }
 
-    if (videos.length === 0) {
-        return reply(`❌ File nahi mili! Kripya is folder mein .mp4 videos dalein:\nPriyansh/commands/cache/poetry_videos/${version}`);
-    }
+    if (videos.length === 0) return reply(`❌ Folder '${version}' mein kam az kam ek .mp4 video hona zaroori hai!`);
 
-    reply("⏳ Editing shuru ho gayi hai... (20 se 60 seconds lag sakte hain)");
+    // Processing Message
+    const infoMsg = await new Promise(resolve => {
+        api.sendMessage("⚡ RDX Turbo Engine: Processing... (5-10s)", threadID, (err, info) => resolve(info), messageID);
+    });
 
     try {
-        const randomFile = videos[Math.floor(Math.random() * videos.length)];
-        const videoPath = path.join(videoDir, randomFile);
+        const randomVideo = videos[Math.floor(Math.random() * videos.length)];
+        const videoPath = path.join(videoDir, randomVideo);
         const imageUrl = messageReply.attachments[0].url;
 
         const ts = Date.now();
         const tempImg = path.join(tempDir, `img_${ts}.jpg`);
         const outVideo = path.join(tempDir, `out_${ts}.mp4`);
 
-        // Download user's image
-        const res = await axios.get(imageUrl, { responseType: "arraybuffer" });
-        fs.writeFileSync(tempImg, res.data);
+        // Image Download
+        const imgRes = await axios.get(imageUrl, { responseType: "arraybuffer" });
+        fs.writeFileSync(tempImg, imgRes.data);
 
-        // FFmpeg Magic (Green Screen Overlay)
+        // --- EXTREME SPEED FFMPEG ENGINE ---
         await new Promise((resolve, reject) => {
             ffmpeg()
-                .input(tempImg)     // Background Image
-                .loop()
-                .input(videoPath)   // Green Screen Video
+                .input(tempImg)
+                .loop(1)
+                .input(videoPath)
                 .complexFilter([
-                    // Resize image to 720p
-                    "[0:v]scale=1280:720,setsar=1[bg]",
-                    // Resize video to 720p and apply chroma key (remove green)
-                    "[1:v]scale=1280:720,setsar=1,format=rgba,chromakey=0x00FF00:0.15:0.10[fg]",
-                    // Overlay video on top of image
+                    // Sabse tez resolution (640x360) jo status ke liye perfect hai
+                    "[0:v]scale=640:360,setsar=1[bg]",
+                    "[1:v]scale=640:360,setsar=1,format=rgba,chromakey=0x00FF00:0.15:0.1[fg]",
                     "[bg][fg]overlay=(W-w)/2:(H-h)/2[outv]"
                 ])
                 .outputOptions([
                     "-map [outv]",
-                    "-map 1:a?",         // Keep audio from video if exists
+                    "-map 1:a?",         // Video ki original audio
                     "-c:v libx264",
+                    "-preset ultrafast", // SABSE TEZ PROCESSING
+                    "-crf 30",           // Optimized quality vs speed
                     "-pix_fmt yuv420p",
-                    "-preset fast",      // Changed to 'fast' for Render's limited CPU
-                    "-crf 28",           // Slightly compressed to save memory & time
                     "-c:a aac",
-                    "-shortest",
+                    "-b:a 64k",          // Audio bitrate kam (speed ke liye)
+                    "-shortest",         // Video khatam hotay hi stop
+                    "-t 12",             // Video ko 12 seconds par lock kar diya (Fastest)
                     "-movflags +faststart"
                 ])
-                .on("error", (err, stdout, stderr) => {
-                    console.error("FFmpeg Error:", stderr);
-                    reject(err);
-                })
+                .on("error", (err) => reject(err))
                 .on("end", resolve)
                 .save(outVideo);
         });
 
-        if (!fs.existsSync(outVideo)) {
-            throw new Error("Video process fail ho gaya.");
-        }
-
-        // Send the final edited video
+        // Video Send Karna
         api.sendMessage({
-            body: `✨ Ye lijiye aapki video!\n🎥 Overlay: ${randomFile}`,
+            body: `✅ Edited by RDX Speed Engine\n🎥 File: ${randomVideo}`,
             attachment: fs.createReadStream(outVideo)
         }, threadID, () => {
-            // Delete temp files after sending
-            setTimeout(() => {
-                [tempImg, outVideo].forEach(f => {
-                    if (fs.existsSync(f)) fs.unlinkSync(f);
-                });
-            }, 10000);
+            // Cleanup: Files delete karein taake Render ki memory full na ho
+            if (fs.existsSync(tempImg)) fs.unlinkSync(tempImg);
+            if (fs.existsSync(outVideo)) fs.unlinkSync(outVideo);
+            api.unsendMessage(infoMsg.messageID); // Processing message hatayen
         }, messageID);
 
     } catch (err) {
         console.error(err);
-        reply("❌ Error aagaya: " + (err.message || "Unknown error"));
+        reply("❌ Error: " + err.message);
+        api.unsendMessage(infoMsg.messageID);
     }
 };
-                  
