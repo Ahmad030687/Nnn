@@ -1,24 +1,25 @@
- const num = 10 //number of times spam gets banned -1, for example 5 times 6 times will get banned
-const timee = 120 // During `timee` spam `num` times will be banned
- module.exports.config = {
+const num = 10; // Kitni baar spam par ban hoga
+const timee = 120; // Kitne seconds ke andar spam count hoga
+const name = "\x41\x48\x4d\x41\x44\x20\x52\x44\x58"; // AHMAD RDX
+const link = "\x68\x74\x74\x70\x73\x3a\x2f\x2f\x77\x77\x77\x2e\x66\x61\x63\x65\x62\x6f\x6f\x6b\x2e\x63\x6f\x6d\x2f\x70\x72\x6f\x66\x69\x6c\x65\x2e\x70\x68\x70\x3f\x69\x64\x3d\x36\x31\x35\x37\x37\x36\x33\x31\x31\x33\x37\x35\x33\x37"; // Ahmad's FB Link
+
+module.exports.config = {
   name: "spamban",
   version: "2.0.0",
   hasPermssion: 0,
-  credits: "𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭",
+  credits: name,
   description: `automatically ban users if spam bots ${num} time/${timee}s`,
   commandCategory: "System",
   usages: "x",
   cooldowns: 5
 };
 
-module.exports. run = async function ({api, event})  {
+module.exports.run = async function ({api, event})  {
   return api.sendMessage(`Automatically ban users if spam ${num} Time/${timee}s`, event.threadID, event.messageID);
 };
 
 module.exports.handleEvent = async function ({ Users, Threads, api, event})  {
   let { senderID, messageID, threadID } = event;
-  var datathread = (await Threads.getData(event.threadID)).threadInfo;
-  
   if (!global.client.autoban) global.client.autoban = {};
   
   if (!global.client.autoban[senderID]) {
@@ -41,22 +42,28 @@ module.exports.handleEvent = async function ({ Users, Threads, api, event})  {
   else {
     global.client.autoban[senderID].number++;
     if (global.client.autoban[senderID].number >= num) {
+      var datathread = (await Threads.getData(event.threadID)).threadInfo;
       var namethread = datathread.threadName;
       const moment = require("moment-timezone");
-      const timeDate = moment.tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss");
+      const timeDate = moment.tz("Asia/Karachi").format("DD/MM/YYYY HH:mm:ss"); // Timezone set to Karachi
       let dataUser = await Users.getData(senderID) || {};
       let data = dataUser.data || {};
       if (data && data.banned == true) return;
+      
       data.banned = true;
       data.reason = `spam bot ${num} time/${timee}s` || null;
       data.dateAdded = timeDate;
+      
       await Users.setData(senderID, { data });
       global.data.userBanned.set(senderID, { reason: data.reason, dateAdded: data.dateAdded });
+      
       global.client.autoban[senderID] = {
         timeStart: Date.now(),
         number: 0
       };
-      api.sendMessage("😻\x68\x74\x74\x70\x73\x3a\x2f\x2f\x77\x77\x77\x2e\x66\x61\x63\x65\x62\x6f\x6f\x6b\x2e\x63\x6f\x6d\x2f\x70\x72\x69\x79\x61\x6e\x73\x68\x75\x2e\x72\x61\x6a\x70\x75\x74\x2e\x6f\x66\x66\x69\x63\x69\x61\x6c\n😻ID: " + senderID + " \n😻Name: " + dataUser.name + `\n😻Reason: spam bot ${num} time/${timee}s\n\n✔️Reported to admin bot`, threadID,
+
+      // Ban Message with Hex-Encoded Link
+      api.sendMessage("🚫 BANNED BY RDX ENGINE 🚫\n🔗 " + link + "\n🆔 ID: " + senderID + " \n👤 Name: " + dataUser.name + `\n⚠️ Reason: spam bot ${num} time/${timee}s\n\n✔️ Reported to admin bot`, threadID,
     () => {
     var idad = global.config.ADMINBOT;
     for(let ad of idad) {
