@@ -26,7 +26,7 @@ module.exports.handleReply = async function ({ api, event, args, Threads, handle
           data.dateAdded = time;
           await Threads.setData(idgr, { data });
           global.data.threadBanned.set(idgr, { dateAdded: data.dateAdded });
-          return api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n Group of Friends Have been banned from using bots by Ban.`, idgr, () =>
+          return api.sendMessage(`»Notifications from Owner 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗«\n\n Group of Friends Have been banned from using bots by Ban.`, idgr, () =>
             api.sendMessage(`${api.getCurrentUserID()}`, () =>
               api.sendMessage(`★★BanSuccess★★\n\n🔷${groupName} \n🔰TID:${idgr}`, threadID, () =>
                 api.unsendMessage(handleReply.messageID))));
@@ -38,7 +38,7 @@ module.exports.handleReply = async function ({ api, event, args, Threads, handle
           data.dateAdded = null;
           await Threads.setData(idgr, { data });
           global.data.threadBanned.delete(idgr, 1);
-          return api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n Group Of Friends That Have Been Removed Board`, idgr, () =>
+          return api.sendMessage(`»Notifications from Owner 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗«\n\n Group Of Friends That Have Been Removed Board`, idgr, () =>
             api.sendMessage(`${api.getCurrentUserID()}`, () =>
               api.sendMessage(`★★𝐔𝐧𝐛𝐚𝐧𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃:${idgr} `, threadID, () =>
                 api.unsendMessage(handleReply.messageID))));
@@ -53,7 +53,7 @@ module.exports.handleReply = async function ({ api, event, args, Threads, handle
         }
 
         if (arg[0] == "out" || arg[0] == "Out") {
-          api.sendMessage(`»Notifications from Owner 𝐏𝐫𝐢𝐲𝐚𝐧𝐬𝐡 𝐑𝐚𝐣𝐩𝐮𝐭«\n\n ★★Deleted from chat★★ group`, idgr, () =>
+          api.sendMessage(`»Notifications from Owner 𝐀𝐇𝐌𝐀𝐃 𝐑𝐃𝐗«\n\n ★★Deleted from chat★★ group`, idgr, () =>
             api.sendMessage(`${api.getCurrentUserID()}`, () =>
               api.sendMessage(`★★𝐎𝐮𝐭𝐒𝐮𝐜𝐜𝐞𝐬𝐬★★\n\n🔷${groupName} \n🔰𝐓𝐈𝐃:${idgr} `, threadID, () =>
                 api.unsendMessage(handleReply.messageID, () =>
