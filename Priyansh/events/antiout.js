@@ -1,33 +1,34 @@
 module.exports.config = {
     name: "antiout",
     eventType: ["log:unsubscribe"],
-    version: "0.0.1",
+    version: "2.0.0",
     credits: "Ahmad RDX",
-    description: "Listen events and add back members"
+    description: "100% Direct working antiout - No database needed"
 };
 
-module.exports.run = async({ event, api, Threads, Users }) => {
-    let data = (await Threads.getData(event.threadID)).data || {};
-    
-    // 1. Check karo ke Anti-out ON hai ya nahi
-    if (data.antiout == false) return;
+module.exports.run = async ({ event, api, Users }) => {
+    let { logMessageData, author, threadID } = event;
 
-    // 2. Agar bot ko khud nikala gaya ho toh ignore karo
-    if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
+    // 1. Agar bot ko nikala gaya ho toh ruk jao (Self-protection)
+    if (logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
 
-    // 3. Naam nikalna
-    const name = global.data.userName.get(event.logMessageData.leftParticipantFbId) || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
-
-    // 4. Check karo ke bande ne KHUD left kiya hai ya kisi ne NIKALA hai
-    // Agar author aur leftParticipant dono same hain, matlab banda khud bhaga hai
-    if (event.author == event.logMessageData.leftParticipantFbId) {
+    // 2. Sirf tab add karega jab banda KHUD bhagay (Self-leave)
+    // Author aur Left ID same honi chahiye
+    if (author == logMessageData.leftParticipantFbId) {
         
-        api.addUserToGroup(event.logMessageData.leftParticipantFbId, event.threadID, (error, info) => {
-            if (error) {
-                api.sendMessage(`❌ [ RDX ] ${name} ko dubara add nahi kar paya! (Ya toh privacy tight hai ya bot friend nahi hai)`, event.threadID);
+        const uid = logMessageData.leftParticipantFbId;
+        
+        // 3. Wapas add karne ka Direct Engine
+        api.addUserToGroup(uid, threadID, async (err) => {
+            if (err) {
+                // Agar add nahi kar saka toh group mein msg bhejega
+                api.sendMessage("❌ [ RDX ] Isay wapas nahi la saka! (Bot Admin hona chahiye aur user Bot ka Friend hona chahiye)", threadID);
+                console.log(`[ RDX ERROR ] ID: ${uid} ko add nahi kar saka. Error: ${err}`);
             } else {
-                api.sendMessage(`🔥 [ RDX PRISON ] 🔥\n\nBhag ke jaane ka nahi, ${name} baby! Dekho phir se add kar diya aapko.`, event.threadID);
+                // Agar add ho gaya toh ye msg aayega
+                let name = await Users.getNameUser(uid) || "Member";
+                api.sendMessage(`🔥 [ RDX PRISON ] 🔥\n\nBeta ${name}, kahan bhag rahe ho? RDX ki ijazat ke bina exit mana hai! Wapas aao.`, threadID);
             }
         });
     }
-}
+};
